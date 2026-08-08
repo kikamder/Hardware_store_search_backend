@@ -1,0 +1,234 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Get a free hosted Postgres database in seconds: `npx create-db`
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+}
+
+enum UserRole {
+  CUSTOMER
+  shop
+  admin
+}
+
+enum UserStatus {
+  ACTIVE
+  SUSPENDED
+}
+
+enum ShopStatus {
+  PENDING
+  OPEN
+  CLOSED
+  REJECTED
+  SUSPENDED
+}
+
+enum Category {
+  CPU
+  MAINBOARD
+  VGA
+  RAM
+  STORAGE
+  PSU
+  CASE
+  COOLER
+}
+
+// ========================= USER / SHOP =========================
+
+model User {
+  userId      Int        @id @default(autoincrement())
+  email       String     @unique @db.VarChar(100)
+  displayName String     @db.VarChar(50)
+  userRole    UserRole
+  userStatus  UserStatus
+
+  shop            Shop?
+  favoriteShops   FavoriteShop[]
+  favoriteProducts FavoriteProduct[]
+
+  @@map("users")
+}
+
+model Shop {
+  shopId           Int        @id @default(autoincrement())
+  userId           Int        @unique
+  ownerFirstName   String     @db.VarChar(50)
+  ownerLastName    String     @db.VarChar(50)
+  profileImageUrl  String?
+  shopName         String     @db.VarChar(100)
+  shopDescription  String?
+  addressText      String?
+  subDistrict      String?    @db.VarChar(50)
+  district         String?    @db.VarChar(50)
+  province         String?    @db.VarChar(50)
+  zipCode          String?    @db.VarChar(10)
+  contactChannels  Json?
+  ownerPhone       String?    @db.VarChar(13)
+  operatingHours   String?    @db.VarChar(100)
+  latitude         Decimal?
+  longitude        Decimal?
+  shopStatus       ShopStatus
+  submittedAt      DateTime   @default(now())
+
+  user          User           @relation(fields: [userId], references: [userId])
+  products      ShopProduct[]
+  followedBy    FavoriteShop[]
+
+  @@map("shops")
+}
+
+model FavoriteShop {
+  customerId Int
+  shopId     Int
+
+  user User @relation(fields: [customerId], references: [userId])
+  shop Shop @relation(fields: [shopId], references: [shopId])
+
+  @@id([customerId, shopId])
+  @@map("favorite_shops")
+}
+
+// ========================= HARDWARE (CTI PATTERN) =========================
+
+model MasterHardware {
+  masterId    Int      @id @default(autoincrement())
+  hardwareKey String   @unique
+  displayName String
+  brand       String
+  category    Category
+  searchCount Int      @default(0)
+  specs       Json?    // ใช้เฉพาะหมวดที่ไม่มีตารางย่อย เช่น CASE, COOLER
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  cpu          Cpu?
+  ram          Ram?
+  vga          Vga?
+  mainboard    Mainboard?
+  storage      Storage?
+  psu          Psu?
+
+  shopProducts ShopProduct[]
+
+  @@index([category, brand])
+  @@map("master_hardware")
+}
+
+model Cpu {
+  masterId       Int    @id
+  family         String @db.VarChar(50)
+  processorClass String @db.VarChar(50)
+  socket         String @db.VarChar(50)
+
+  master MasterHardware @relation(fields: [masterId], references: [masterId], onDelete: Cascade)
+
+  @@index([socket])
+  @@index([family])
+  @@map("cpus")
+}
+
+model Ram {
+  masterId   Int    @id
+  ramType    String @db.VarChar(50)
+  capacityGB Int
+  busSpeed   Int
+
+  master MasterHardware @relation(fields: [masterId], references: [masterId], onDelete: Cascade)
+
+  @@index([capacityGB, busSpeed])
+  @@index([ramType])
+  @@map("rams")
+}
+
+model Vga {
+  masterId Int    @id
+  series   String @db.VarChar(50)
+  chipset  String?
+  vramSize Int?
+
+  master MasterHardware @relation(fields: [masterId], references: [masterId], onDelete: Cascade)
+
+  @@index([series])
+  @@map("vgas")
+}
+
+model Mainboard {
+  masterId   Int    @id
+  formFactor String @db.VarChar(50)
+  socket     String @db.VarChar(50)
+  chipset    String @db.VarChar(50)
+  ramSlots   Int
+
+  master MasterHardware @relation(fields: [masterId], references: [masterId], onDelete: Cascade)
+
+  @@index([socket])
+  @@index([formFactor])
+  @@map("mainboards")
+}
+
+model Storage {
+  masterId    Int    @id
+  storageType String @db.VarChar(50)
+  interfaceType String @db.VarChar(50)
+  capacityGB  Int
+
+  master MasterHardware @relation(fields: [masterId], references: [masterId], onDelete: Cascade)
+
+  @@index([capacityGB])
+  @@map("storages")
+}
+
+model Psu {
+  masterId       Int    @id
+  watt           Int
+  standard80Plus String @db.VarChar(100)
+
+  master MasterHardware @relation(fields: [masterId], references: [masterId], onDelete: Cascade)
+
+  @@index([watt])
+  @@map("psus")
+}
+
+// ========================= SHOP PRODUCT =========================
+
+model ShopProduct {
+  shopProductId Int      @id @default(autoincrement())
+  shopId        Int
+  masterId      Int
+  customTitle   String?  @db.VarChar(255)
+  price         Decimal
+  warranty      String?  @db.VarChar(20)
+  description   String?
+  imageUrl      String?
+  updatedAt     DateTime @updatedAt
+  createdAt     DateTime @default(now())
+
+  shop   Shop           @relation(fields: [shopId], references: [shopId])
+  master MasterHardware @relation(fields: [masterId], references: [masterId])
+
+  favoritedBy FavoriteProduct[]
+
+  @@index([shopId])
+  @@index([masterId])
+  @@map("shop_products")
+}
+
+// รายการสินค้าที่ถูกใจ (User กดถูกใจสินค้าในร้าน)
+model FavoriteProduct {
+  customerId    Int
+  shopProductId Int
+
+  user        User        @relation(fields: [customerId], references: [userId])
+  shopProduct ShopProduct @relation(fields: [shopProductId], references: [shopProductId])
+
+  @@id([customerId, shopProductId])
+  @@map("favorite_products")
+}
