@@ -1,14 +1,22 @@
+import dotenv from 'dotenv';
+import path from 'path';
+import { fileURLToPath } from 'url';
 import { OAuth2Client } from 'google-auth-library';
 import jwt from 'jsonwebtoken';
-
-// 1. Import ตัว Prisma และ Adapter เข้ามา (เปลี่ยนจาก require เป็น import)
 import { PrismaClient } from '@prisma/client';
 import { PrismaPg } from '@prisma/adapter-pg';
+import pg from 'pg';
 
-// 2. ตั้งค่า Adapter โดยดึง URL จากไฟล์ .env
-const adapter = new PrismaPg({ connectionString: process.env.DATABASE_URL });
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
-// 3. สร้าง prisma client โดยยัด adapter ใส่เข้าไปด้วย
+dotenv.config({ path: path.resolve(__dirname, '../../.env') });
+
+const connectionString = process.env.DATABASE_URL;
+
+const { Pool } = pg;
+const pool = new Pool({ connectionString });
+const adapter = new PrismaPg(pool);
 const prisma = new PrismaClient({ adapter });
 
 const client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
