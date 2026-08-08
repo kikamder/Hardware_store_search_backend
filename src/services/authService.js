@@ -1,9 +1,9 @@
-const { OAuth2Client } = require('google-auth-library');
-const jwt = require('jsonwebtoken');
+import { OAuth2Client } from 'google-auth-library';
+import jwt from 'jsonwebtoken';
 
-// 1. Import ตัว Prisma และ Adapter เข้ามา
-const { PrismaClient } = require('@prisma/client');
-const { PrismaPg } = require('@prisma/adapter-pg');
+// 1. Import ตัว Prisma และ Adapter เข้ามา (เปลี่ยนจาก require เป็น import)
+import { PrismaClient } from '@prisma/client';
+import { PrismaPg } from '@prisma/adapter-pg';
 
 // 2. ตั้งค่า Adapter โดยดึง URL จากไฟล์ .env
 const adapter = new PrismaPg({ connectionString: process.env.DATABASE_URL });
@@ -60,4 +60,5 @@ class AuthService {
   }
 }
 
-module.exports = new AuthService();
+// เปลี่ยนจาก module.exports เป็น export default
+export default new AuthService();
