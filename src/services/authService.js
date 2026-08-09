@@ -3,7 +3,7 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import { OAuth2Client } from 'google-auth-library';
 import jwt from 'jsonwebtoken';
-import { PrismaClient } from '@prisma/client';
+import prisma from '../configs/prismaClient.js';
 import { PrismaPg } from '@prisma/adapter-pg';
 import pg from 'pg';
 
@@ -17,7 +17,7 @@ const connectionString = process.env.DATABASE_URL;
 const { Pool } = pg;
 const pool = new Pool({ connectionString });
 const adapter = new PrismaPg(pool);
-const prisma = new PrismaClient({ adapter });
+
 
 const client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
 
@@ -61,7 +61,16 @@ class AuthService {
       { userId: user.userId },
       process.env.JWT_SECRET, // (ในระบบใหญ่ๆ นิยมตั้งรหัส Secret แยกอีกตัวสำหรับ Refresh ครับ)
       { expiresIn: '7d' }
+      
     );
+    await prisma.user.update({
+      where: { 
+        userId: user.userId // ระบุตัวผู้ใช้ที่กำลัง Login
+      },
+      data: { 
+        refreshToken: refreshToken // อัปเดตคอลัมน์ refreshToken
+     }
+    });
 
     // 6. ส่ง Token กลับไปทั้ง 2 ตัว
     return { user, accessToken, refreshToken };

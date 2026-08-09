@@ -49,6 +49,7 @@ model User {
   displayName String     @db.VarChar(50)
   userRole    UserRole
   userStatus  UserStatus
+  refreshToken String?
 
   shop            Shop?
   favoriteShops   FavoriteShop[]
