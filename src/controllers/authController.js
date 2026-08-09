@@ -39,7 +39,7 @@ class AuthController {
       const userId = req.user.userId; 
 
       // ดึงข้อมูล User จาก Database
-      const user = await prisma.user.findUnique({
+      const user = await prisma.users.findUnique({
         where: { userId: userId },
         select: {
           userId: true,
@@ -104,7 +104,7 @@ class AuthController {
 
         // 3. 🛡️ เช็คความปลอดภัย: ค้นหาใน Database ว่า Token นี้ยังเป็นของ User คนนี้จริงๆ ใช่ไหม
         // (ป้องกันกรณีโดนเตะออกจากระบบ หรือเราสั่งลบ Token ใน DB ไปแล้ว)
-        const user = await prisma.user.findFirst({
+        const user = await prisma.users.findFirst({
           where: {
             userId: payload.userId,
             refreshToken: refreshToken // ต้องตรงกับที่เก็บใน DB
