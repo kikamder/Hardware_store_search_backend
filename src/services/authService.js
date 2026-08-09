@@ -32,7 +32,7 @@ class AuthService {
     const { email, name } = payload;
 
     // 2. เช็คในระบบเราว่ามีอีเมลนี้หรือยัง
-    let user = await prisma.users.findUnique({
+    let user = await prisma.user.findUnique({
       where: { email: email }
     });
 
