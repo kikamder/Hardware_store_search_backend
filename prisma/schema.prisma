@@ -142,7 +142,7 @@ model storages {
   @@index([capacityGB])
 }
 
-model users {
+model user {
   userId            Int                 @id @default(autoincrement())
   email             String              @unique @db.VarChar(100)
   displayName       String              @db.VarChar(50)
@@ -152,6 +152,8 @@ model users {
   favorite_products favorite_products[]
   favorite_shops    favorite_shops[]
   shops             shops?
+
+  @@map("users")
 }
 
 model vgas {
