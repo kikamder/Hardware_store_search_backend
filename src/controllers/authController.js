@@ -22,19 +22,19 @@ class AuthController {
         data: {
           accessToken: result.accessToken,  
           refreshToken: result.refreshToken,
-          user : { 
-            userId: user.userId,
-            email: user.email,
-            displayName: user.displayName,              
-            profilePicture: user.profilePicture, 
-            role: user.userRole     
+          user: {
+            userId: result.user.userId,
+            email: result.user.email,
+            displayName: result.user.displayName,
+            profilePicture: result.user.profilePicture,
+            role: result.user.userRole
           }
         }
       });
     } catch (error) {
-      console.error('Google OAuth Error:', error);
-      res.status(401).json({ error: 'Invalid or Expired Google Token' });
-    }
+        console.error('Google OAuth Error:', error);
+        res.status(401).json({ error: 'Invalid or Expired Google Token' });
+      }
   }
 
     // ใน authController.js
