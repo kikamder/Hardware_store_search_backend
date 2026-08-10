@@ -32,14 +32,14 @@ class AuthService {
     const { email, name } = payload;
     //console.log(payload);
     // 2. เช็คในระบบเราว่ามีอีเมลนี้หรือยัง
-    let user = await prisma.users.findUnique({
+    let user = await prisma.user.findUnique({
       where: { email: email }
     });
 
     // 3. ถ้ายังไม่มีให้สร้าง User ใหม่ (Auto Register)
     if (user) {
       // 🟢 กรณีมี User อยู่แล้วในระบบ (ล็อกอินซ้ำ) -> ให้อัปเดตข้อมูล
-          user = await prisma.users.update({
+          user = await prisma.user.update({
             where: { email: payload.email },
             data: { 
               displayName: payload.name,
@@ -49,7 +49,7 @@ class AuthService {
 
     } else {
         // 🔵 กรณีไม่มี User ในระบบ (เข้าสู่ระบบครั้งแรก) -> ให้สร้างไอดีใหม่
-        user = await prisma.users.create({
+        user = await prisma.user.create({
           data: {
             email: payload.email,
             displayName: payload.name,
@@ -74,7 +74,7 @@ class AuthService {
       { expiresIn: '7d' }
       
     );
-    await prisma.users.update({
+    await prisma.user.update({
       where: { 
         userId: user.userId // ระบุตัวผู้ใช้ที่กำลัง Login
       },
