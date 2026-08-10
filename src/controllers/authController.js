@@ -86,7 +86,7 @@ class AuthController {
 
          // 🟢 ค้นหาว่า Token นี้เป็นของใคร แล้วสั่งเปลี่ยนคอลัมน์นั้นให้เป็น null (ค่าว่าง)
          // การใช้ updateMany จะช่วยป้องกัน Error กรณีหา Token ไม่เจอครับ
-          await prisma.user.updateMany({
+          await prisma.user.update({
             where: { 
               refreshToken: refreshToken // หา User ที่มี Token นี้ถืออยู่
             },
@@ -100,7 +100,7 @@ class AuthController {
             console.error('Logout Error:', error);
             res.status(500).json({ error: 'Internal server error during logout' });
           }
-      };
+    };
    async refreshToken (req, res){
       try {
         // 1. รับ Refresh Token ที่ Frontend ส่งมา
