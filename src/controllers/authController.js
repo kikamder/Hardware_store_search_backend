@@ -19,11 +19,12 @@ class AuthController {
       res.status(200).json({
         status: 'success',
         message: 'Login Successful',
-        accessToken: result.accessToken,  
-        refreshToken: result.refreshToken, 
         data: {
-          token: result.token,
-          user: result.user
+          accessToken: result.accessToken,  
+          refreshToken: result.refreshToken,
+          user : { 
+            user: result.user
+          }
         }
       });
     } catch (error) {
