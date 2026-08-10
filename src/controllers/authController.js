@@ -27,7 +27,8 @@ class AuthController {
             email: result.user.email,
             displayName: result.user.displayName,
             profilePicture: result.user.profilePicture,
-            role: result.user.userRole
+            role: result.user.userRole,
+            userStatus: result.user.userStatus
           }
         }
       });
