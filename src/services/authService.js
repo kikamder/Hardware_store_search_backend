@@ -55,6 +55,7 @@ class AuthService {
             displayName: payload.name,
             profilePicture: payload.picture,
             userRole: 'CUSTOMER',
+            userStatus: 'ACTIVE',
           },
         });
       }
