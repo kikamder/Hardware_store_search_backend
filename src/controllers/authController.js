@@ -55,7 +55,17 @@ class AuthController {
         return res.status(404).json({ error: 'User not found' });
       }
 
-      res.status(200).json({ user });
+      res.status(200).json({ 
+        data: {
+          user: {
+            userId: user.userId,
+            email: user.email,
+            displayName: user.displayName,              // แมป displayName เป็น name
+           // profilePicture: user.profilePicture, 
+            userRole: user.userRole                  // แมป userRole เป็น role
+          }
+       }   
+      });
     } catch (error) {
         console.error('Get Me Error:', error);
         res.status(500).json({ error: 'Internal server error' });
