@@ -20,7 +20,7 @@ model cpus {
 model favorite_products {
   customerId    Int
   shopProductId Int
-  users         users         @relation(fields: [customerId], references: [userId])
+  user         User         @relation(fields: [customerId], references: [userId])
   shop_products shop_products @relation(fields: [shopProductId], references: [shopProductId])
 
   @@id([customerId, shopProductId])
@@ -29,7 +29,7 @@ model favorite_products {
 model favorite_shops {
   customerId Int
   shopId     Int
-  users      users @relation(fields: [customerId], references: [userId])
+  user      User @relation(fields: [customerId], references: [userId])
   shops      shops @relation(fields: [shopId], references: [shopId])
 
   @@id([customerId, shopId])
@@ -129,7 +129,7 @@ model shops {
   submittedAt     DateTime         @default(now())
   favorite_shops  favorite_shops[]
   shop_products   shop_products[]
-  users           users            @relation(fields: [userId], references: [userId])
+  user           User            @relation(fields: [userId], references: [userId])
 }
 
 model storages {
@@ -142,7 +142,7 @@ model storages {
   @@index([capacityGB])
 }
 
-model users {
+model User {
   userId            Int                 @id @default(autoincrement())
   email             String              @unique @db.VarChar(100)
   displayName       String              @db.VarChar(50)
