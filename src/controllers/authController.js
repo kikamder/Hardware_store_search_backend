@@ -23,7 +23,11 @@ class AuthController {
           accessToken: result.accessToken,  
           refreshToken: result.refreshToken,
           user : { 
-            user: result.user
+            userId: user.userId,
+            email: user.email,
+            displayName: user.displayName,              
+            profilePicture: user.profilePicture, 
+            role: user.userRole     
           }
         }
       });
@@ -63,7 +67,7 @@ class AuthController {
             email: user.email,
             displayName: user.displayName,              // แมป displayName เป็น name
             profilePicture: user.profilePicture, 
-            userRole: user.userRole                  // แมป userRole เป็น role
+            role: user.userRole                  // แมป userRole เป็น role
           }
        }   
       });
