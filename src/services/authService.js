@@ -30,23 +30,34 @@ class AuthService {
     });
     const payload = ticket.getPayload();
     const { email, name } = payload;
-
+    //console.log(payload);
     // 2. เช็คในระบบเราว่ามีอีเมลนี้หรือยัง
     let user = await prisma.users.findUnique({
       where: { email: email }
     });
 
     // 3. ถ้ายังไม่มีให้สร้าง User ใหม่ (Auto Register)
-    if (!user) {
-      user = await prisma.users.create({
-        data: {
-          email: email,
-          displayName: name,
-          userRole: 'CUSTOMER', // ค่าเริ่มต้นตาม Enum
-          userStatus: 'ACTIVE'  // ค่าเริ่มต้นตาม Enum
-        }
-      });
-    }
+    if (user) {
+      // 🟢 กรณีมี User อยู่แล้วในระบบ (ล็อกอินซ้ำ) -> ให้อัปเดตข้อมูล
+          user = await prisma.users.update({
+            where: { email: payload.email },
+            data: { 
+              displayName: payload.name,
+              profilePicture: payload.picture // อัปเดตรูปใหม่เสมอเผื่อเขาเปลี่ยนรูปที่ Google
+            }
+          });
+
+    } else {
+        // 🔵 กรณีไม่มี User ในระบบ (เข้าสู่ระบบครั้งแรก) -> ให้สร้างไอดีใหม่
+        user = await prisma.users.create({
+          data: {
+            email: payload.email,
+            displayName: payload.name,
+            profilePicture: payload.picture,
+            userRole: 'CUSTOMER',
+          },
+        });
+      }
 
     // 4. สร้าง Access Token (อายุสั้น 1 ชั่วโมง สำหรับใช้ยืนยันตัวตน)
     const accessToken = jwt.sign(

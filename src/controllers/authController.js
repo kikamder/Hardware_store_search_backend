@@ -46,6 +46,7 @@ class AuthController {
           userId: true,
           email: true,
           displayName: true,
+          profilePicture: true,
           userRole: true,
           // (ไม่ต้องดึงรหัสผ่านหรือข้อมูลลับมานะครับ)
         }
@@ -61,7 +62,7 @@ class AuthController {
             userId: user.userId,
             email: user.email,
             displayName: user.displayName,              // แมป displayName เป็น name
-           // profilePicture: user.profilePicture, 
+            profilePicture: user.profilePicture, 
             userRole: user.userRole                  // แมป userRole เป็น role
           }
        }   
