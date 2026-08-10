@@ -142,7 +142,7 @@ model storages {
   @@index([capacityGB])
 }
 
-model user {
+model users {
   userId            Int                 @id @default(autoincrement())
   email             String              @unique @db.VarChar(100)
   displayName       String              @db.VarChar(50)
