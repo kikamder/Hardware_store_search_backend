@@ -148,7 +148,7 @@ model User {
   displayName       String              @db.VarChar(50)
   userRole          UserRole
   userStatus        UserStatus
-  refreshToken      String?
+  refreshToken      String? @unique
   profilePicture    String?
   favorite_products favorite_products[]
   favorite_shops    favorite_shops[]

@@ -79,21 +79,22 @@ class AuthController {
     async logout(req, res){
         try {
           const { refreshToken } = req.body || {};
+          const decoded = jwt.decode(refreshToken);
 
-          if (!refreshToken) {
+          if (!decoded?.userId) {
            return res.status(400).json({ error: 'No refresh token provided' });
           } 
-
+          
          // 🟢 ค้นหาว่า Token นี้เป็นของใคร แล้วสั่งเปลี่ยนคอลัมน์นั้นให้เป็น null (ค่าว่าง)
          // การใช้ updateMany จะช่วยป้องกัน Error กรณีหา Token ไม่เจอครับ
-          await prisma.user.update({
-            where: { 
-              refreshToken: refreshToken // หา User ที่มี Token นี้ถืออยู่
-            },
-            data: { 
-              refreshToken: null // ล้างค่าทิ้งให้เป็น null (ทำลายบัตรประชาชน)
-            }
-          });
+           await prisma.user.update({
+              where: { 
+                userId: decoded.userId 
+              },
+              data: { 
+                refreshToken: null 
+              },
+            });
 
           res.status(200).json({ message: 'Logged out successfully' });
         } catch (error) {
