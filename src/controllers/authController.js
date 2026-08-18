@@ -1,154 +1,172 @@
 import authService from '../services/authService.js';
-import prisma from '../configs/prismaClient.js';
+import prismaClient from '../configs/prismaClient.js';
 import jwt from 'jsonwebtoken';
 
 class AuthController {
+  /**
+   * ใช้ Dependency Injection แทนการ import ตรงๆ ในตัว method
+   * เพื่อให้ Controller แยกอิสระจาก Prisma/JWT/authService จริงๆ
+   * (Testable: ตอน unit test สามารถส่ง mock object เข้ามาแทนได้)
+   */
+  constructor({
+    prisma = prismaClient,
+    jwtLib = jwt,
+    authSvc = authService,
+    jwtSecret = process.env.JWT_SECRET,
+    accessTokenTTL = '1h',
+  } = {}) {
+    this.prisma = prisma;
+    this.jwt = jwtLib;
+    this.authService = authSvc;
+    this.jwtSecret = jwtSecret;
+    this.accessTokenTTL = accessTokenTTL;
+
+    // Bind methods เพื่อให้ใช้เป็น express route handler ได้ตรงๆ
+    // (กัน error "this is undefined" ตอน destructure ไปใช้กับ router)
+    this.googleLogin = this.googleLogin.bind(this);
+    this.getMe = this.getMe.bind(this);
+    this.logout = this.logout.bind(this);
+    this.refreshToken = this.refreshToken.bind(this);
+  }
+
+  // ---------- Private helpers ----------
+
+  #signAccessToken(user) {
+    return this.jwt.sign(
+      { userId: user.userId, role: user.userRole },
+      this.jwtSecret,
+      { expiresIn: this.accessTokenTTL }
+    );
+  }
+
+  #toPublicUser(user) {
+    return {
+      userId: user.userId,
+      email: user.email,
+      displayName: user.displayName,
+      profilePicture: user.profilePicture,
+      role: user.userRole,
+      ...(user.userStatus !== undefined && { userStatus: user.userStatus }),
+    };
+  }
+
+  #sendError(res, status, message) {
+    return res.status(status).json({ error: message });
+  }
+
+  // ---------- Route handlers ----------
+
   async googleLogin(req, res) {
     try {
-      // รับค่า Token ที่เพื่อนโยนมาจากหน้าเว็บ
       const { googleToken } = req.body || {};
-      
+
       if (!googleToken) {
-        return res.status(400).json({ error: 'Missing Google Token' });
+        return this.#sendError(res, 400, 'Missing Google Token');
       }
 
-      // ส่งไปให้ Service จัดการ
-      const result = await authService.verifyGoogleToken(googleToken);
-      
-      // ส่งข้อมูล User และ JWT กลับไปให้หน้าเว็บ
+      const result = await this.authService.verifyGoogleToken(googleToken);
+
       res.status(200).json({
         status: 'success',
         message: 'Login Successful',
         data: {
-          accessToken: result.accessToken,  
+          accessToken: result.accessToken,
           refreshToken: result.refreshToken,
-          user: {
-            userId: result.user.userId,
-            email: result.user.email,
-            displayName: result.user.displayName,
-            profilePicture: result.user.profilePicture,
-            role: result.user.userRole,
-            userStatus: result.user.userStatus
-          }
-        }
+          user: this.#toPublicUser(result.user),
+        },
       });
     } catch (error) {
-        console.error('Google OAuth Error:', error);
-        res.status(401).json({ error: 'Invalid or Expired Google Token' });
-      }
+      console.error('Google OAuth Error:', error);
+      this.#sendError(res, 401, 'Invalid or Expired Google Token');
+    }
   }
 
-    // ใน authController.js
   async getMe(req, res) {
     try {
-      // req.user จะได้มาจาก Middleware ที่เราใช้ถอดรหัส JWT ครับ
-      const userId = req.user.userId; 
+      const userId = req.user.userId;
 
-      // ดึงข้อมูล User จาก Database
-      const user = await prisma.user.findUnique({
-        where: { userId: userId },
+      const user = await this.prisma.user.findUnique({
+        where: { userId },
         select: {
           userId: true,
           email: true,
           displayName: true,
           profilePicture: true,
           userRole: true,
-          // (ไม่ต้องดึงรหัสผ่านหรือข้อมูลลับมานะครับ)
-        }
+        },
       });
 
       if (!user) {
-        return res.status(404).json({ error: 'User not found' });
+        return this.#sendError(res, 404, 'User not found');
       }
 
-      res.status(200).json({ 
-        data: {
-          user: {
-            userId: user.userId,
-            email: user.email,
-            displayName: user.displayName,              // แมป displayName เป็น name
-            profilePicture: user.profilePicture, 
-            role: user.userRole                  // แมป userRole เป็น role
-          }
-       }   
-      });
+      res.status(200).json({ data: { user: this.#toPublicUser(user) } });
     } catch (error) {
-        console.error('Get Me Error:', error);
-        res.status(500).json({ error: 'Internal server error' });
-      }
+      console.error('Get Me Error:', error);
+      this.#sendError(res, 500, 'Internal server error');
     }
-    async logout(req, res){
-        try {
-          const { refreshToken } = req.body || {};
-          const decoded = jwt.decode(refreshToken);
+  }
 
-          if (!decoded?.userId) {
-           return res.status(400).json({ error: 'No refresh token provided' });
-          } 
-          
-         // 🟢 ค้นหาว่า Token นี้เป็นของใคร แล้วสั่งเปลี่ยนคอลัมน์นั้นให้เป็น null (ค่าว่าง)
-         // การใช้ updateMany จะช่วยป้องกัน Error กรณีหา Token ไม่เจอครับ
-           await prisma.user.update({
-              where: { 
-                userId: decoded.userId 
-              },
-              data: { 
-                refreshToken: null 
-              },
-            });
+  async logout(req, res) {
+    try {
+      const userId = req.user.userId;
 
-          res.status(200).json({ message: 'Logged out successfully' });
-        } catch (error) {
-            console.error('Logout Error:', error);
-            res.status(500).json({ error: 'Internal server error during logout' });
-          }
-    };
-   async refreshToken (req, res){
+      if (!userId) {
+        return this.#sendError(res, 400, 'No refresh token provided');
+      }
+
+      await this.prisma.user.update({
+        where: { 
+          userId: userId 
+        },
+        data: { 
+          refreshToken: null 
+        },
+      });
+
+      res.status(200).json({ message: 'Logged out successfully' });
+    } catch (error) {
+      console.error('Logout Error:', error);
+      this.#sendError(res, 500, 'Internal server error during logout');
+    }
+  }
+
+  async refreshToken(req, res) {
+    try {
+      const { refreshToken } = req.body;
+
+      if (!refreshToken) {
+        return this.#sendError(res, 401, 'No refresh token provided');
+      }
+
+      let payload;
       try {
-        // 1. รับ Refresh Token ที่ Frontend ส่งมา
-        const { refreshToken } = req.body;
+        payload = this.jwt.verify(refreshToken, this.jwtSecret);
+      } catch (err) {
+        return this.#sendError(res, 403, 'Refresh token expired or invalid');
+      }
 
-        if (!refreshToken) {
-          return res.status(401).json({ error: 'No refresh token provided' });
-        }
+      // เช็คว่า token นี้ยังตรงกับที่เก็บใน DB จริงไหม (ป้องกัน token ที่ถูก revoke แล้ว)
+      const user = await this.prisma.user.findFirst({
+        where: {
+          userId: payload.userId,
+          refreshToken,
+        },
+      });
 
-        // 2. ถอดรหัสเพื่อเช็คว่า Refresh Token หมดอายุหรือยัง (และเป็นของแท้ไหม)
-        let payload;
-        try {
-          payload = jwt.verify(refreshToken, process.env.JWT_SECRET);
-        } catch (err) {
-            return res.status(403).json({ error: 'Refresh token expired or invalid' });
-          } 
+      if (!user) {
+        return this.#sendError(res, 403, 'Refresh token has been revoked or not found');
+      }
 
-        // 3. 🛡️ เช็คความปลอดภัย: ค้นหาใน Database ว่า Token นี้ยังเป็นของ User คนนี้จริงๆ ใช่ไหม
-        // (ป้องกันกรณีโดนเตะออกจากระบบ หรือเราสั่งลบ Token ใน DB ไปแล้ว)
-        const user = await prisma.user.findFirst({
-          where: {
-            userId: payload.userId,
-            refreshToken: refreshToken // ต้องตรงกับที่เก็บใน DB
-          }
-        });
+      const newAccessToken = this.#signAccessToken(user);
 
-        if (!user) {
-          
-          return res.status(403).json({ error: 'Refresh token has been revoked or not found' });
-        }
-
-        // 4. ออก Access Token ใบใหม่ให้ (ต่ออายุไปอีก 1 ชั่วโมง)
-        const newAccessToken = jwt.sign(
-          { userId: user.userId, role: user.userRole },
-          process.env.JWT_SECRET,
-          { expiresIn: '1h' }
-        );
-
-        // 5. ส่งเฉพาะ Access Token ใบใหม่กลับไป
-        res.status(200).json({ accessToken: newAccessToken });
-
-      } catch (error) {
-          console.error('Refresh Token Error:', error);
-          res.status(500).json({ error: 'Internal server error' });
-        }
-  };
+      res.status(200).json({ accessToken: newAccessToken });
+    } catch (error) {
+      console.error('Refresh Token Error:', error);
+      this.#sendError(res, 500, 'Internal server error');
+    }
+  }
 }
 
+// Export ทั้ง class (สำหรับ test / DI) และ instance สำเร็จรูป (สำหรับใช้ใน route ปกติ)
 export default new AuthController();

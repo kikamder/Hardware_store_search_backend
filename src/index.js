@@ -1,6 +1,7 @@
+import 'dotenv/config';
 import express from 'express';
 import cors from 'cors';
-import 'dotenv/config';
+
 
 import authRoutes from './routes/authRoutes.js';
 
@@ -17,7 +18,7 @@ app.get('/', (req, res) => {
 
 // เอา Route มาต่อเข้ากับระบบ
 app.use('/api/auth', authRoutes);
-
+//app.use('/api/shop', shopRoutes);
 const PORT = process.env.PORT;
 app.listen(PORT, '0.0.0.0', () => {
   console.log(`Server is running on port ${PORT}`);

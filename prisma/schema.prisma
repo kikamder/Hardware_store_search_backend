@@ -20,18 +20,20 @@ model cpus {
 model favorite_products {
   customerId    Int
   shopProductId Int
+  add_date  DateTime        @default(now())
+
   user         User         @relation(fields: [customerId], references: [userId])
   shop_products shop_products @relation(fields: [shopProductId], references: [shopProductId])
-
   @@id([customerId, shopProductId])
 }
 
 model favorite_shops {
   customerId Int
   shopId     Int
-  user      User @relation(fields: [customerId], references: [userId])
-  shops      shops @relation(fields: [shopId], references: [shopId])
+  add_date  DateTime        @default(now())
 
+  user      User @relation(fields: [customerId], references: [userId])
+  shops     shops @relation(fields: [shopId], references: [shopId])
   @@id([customerId, shopId])
 }
 
@@ -127,6 +129,11 @@ model shops {
   longitude       Decimal?
   shopStatus      ShopStatus
   submittedAt     DateTime         @default(now())
+  idCardImage     String?
+  businessRegImage    String? 
+  storeImnage    String?
+  approveAt      DateTime?
+
   favorite_shops  favorite_shops[]
   shop_products   shop_products[]
   user           User            @relation(fields: [userId], references: [userId])
