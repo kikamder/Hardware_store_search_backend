@@ -20,20 +20,20 @@ model cpus {
 model favorite_products {
   customerId    Int
   shopProductId Int
-  add_date  DateTime        @default(now())
-
-  user         User         @relation(fields: [customerId], references: [userId])
+  add_date      DateTime      @default(now())
+  user          User          @relation(fields: [customerId], references: [userId])
   shop_products shop_products @relation(fields: [shopProductId], references: [shopProductId])
+
   @@id([customerId, shopProductId])
 }
 
 model favorite_shops {
   customerId Int
   shopId     Int
-  add_date  DateTime        @default(now())
+  add_date   DateTime @default(now())
+  user       User     @relation(fields: [customerId], references: [userId])
+  shops      shops    @relation(fields: [shopId], references: [shopId])
 
-  user      User @relation(fields: [customerId], references: [userId])
-  shops     shops @relation(fields: [shopId], references: [shopId])
   @@id([customerId, shopId])
 }
 
@@ -42,7 +42,7 @@ model mainboards {
   formFactor      String          @db.VarChar(50)
   socket          String          @db.VarChar(50)
   chipset         String          @db.VarChar(50)
-  
+  serie          String          @db.VarChar(50)
   master_hardware master_hardware @relation(fields: [masterId], references: [masterId], onDelete: Cascade)
 
   @@index([formFactor])
@@ -56,7 +56,7 @@ model master_hardware {
   brand         String
   category      Category
   searchCount   Int             @default(0)
-  specs         Json?
+  savedCount    Int             @default(0)
   createdAt     DateTime        @default(now())
   updatedAt     DateTime
   cpus          cpus?
@@ -74,6 +74,7 @@ model psus {
   masterId        Int             @id
   watt            Int
   standard80Plus  String          @db.VarChar(100)
+  model           String          @db.VarChar(50)
   master_hardware master_hardware @relation(fields: [masterId], references: [masterId], onDelete: Cascade)
 
   @@index([watt])
@@ -95,48 +96,50 @@ model shop_products {
   shopId            Int
   masterId          Int
   customTitle       String?             @db.VarChar(255)
-  price             Decimal
+  price             Decimal             @db.Decimal(10, 2)
   warranty          String?             @db.VarChar(20)
   description       String?
   imageUrl          String?
   updatedAt         DateTime
   createdAt         DateTime            @default(now())
+  productStatus     ProductStatus       @default(ACTIVE)
   favorite_products favorite_products[]
   master_hardware   master_hardware     @relation(fields: [masterId], references: [masterId])
   shops             shops               @relation(fields: [shopId], references: [shopId])
 
-  @@index([masterId])
+  @@unique([shopId, masterId])
   @@index([shopId])
+  @@index([masterId, price])
 }
 
 model shops {
-  shopId          Int              @id @default(autoincrement())
-  userId          Int              @unique
-  ownerFirstName  String           @db.VarChar(50)
-  ownerLastName   String           @db.VarChar(50)
-  profileImageUrl String?
-  shopName        String           @db.VarChar(100)
-  shopDescription String?
-  addressText     String?
-  subDistrict     String?          @db.VarChar(50)
-  district        String?          @db.VarChar(50)
-  province        String?          @db.VarChar(50)
-  zipCode         String?          @db.VarChar(10)
-  contactChannels Json?
-  ownerPhone      String?          @db.VarChar(13)
-  operatingHours  String?          @db.VarChar(100)
-  latitude        Decimal?
-  longitude       Decimal?
-  shopStatus      ShopStatus
-  submittedAt     DateTime         @default(now())
-  idCardImage     String?
-  businessRegImage    String? 
-  storeImnage    String?
-  approveAt      DateTime?
-
-  favorite_shops  favorite_shops[]
-  shop_products   shop_products[]
-  user           User            @relation(fields: [userId], references: [userId])
+  shopId           Int              @id @default(autoincrement())
+  userId           Int              @unique
+  ownerFirstName   String           @db.VarChar(50)
+  ownerLastName    String           @db.VarChar(50)
+  profileImageUrl  String?
+  shopName         String           @db.VarChar(100)
+  shopDescription  String?
+  addressText      String?
+  subDistrict      String?          @db.VarChar(50)
+  district         String?          @db.VarChar(50)
+  province         String?          @db.VarChar(50)
+  zipCode          String?          @db.VarChar(10)
+  contactChannels  Json?
+  ownerPhone       String?          @db.VarChar(13)
+  operatingHours   String?          @db.VarChar(100)
+  latitude         Decimal?
+  longitude        Decimal?
+  shopStatus       ShopStatus
+  submittedAt      DateTime         @default(now())
+  approveAt        DateTime?
+  approveBy        Int              @default(1)
+  businessRegImage String?
+  idCardImage      String?
+  storeImnage      String?
+  favorite_shops   favorite_shops[]
+  shop_products    shop_products[]
+  user             User             @relation(fields: [userId], references: [userId])
 }
 
 model storages {
@@ -144,6 +147,7 @@ model storages {
   storageType     String          @db.VarChar(50)
   interfaceType   String          @db.VarChar(50)
   capacityGB      Int
+  model           String          @db.VarChar(50)
   master_hardware master_hardware @relation(fields: [masterId], references: [masterId], onDelete: Cascade)
 
   @@index([capacityGB])
@@ -155,7 +159,7 @@ model User {
   displayName       String              @db.VarChar(50)
   userRole          UserRole
   userStatus        UserStatus
-  refreshToken      String? @unique
+  refreshToken      String?             @unique
   profilePicture    String?
   favorite_products favorite_products[]
   favorite_shops    favorite_shops[]
@@ -195,11 +199,16 @@ enum ShopStatus {
 
 enum UserRole {
   CUSTOMER
-  shop
-  admin
+  SHOP
+  ADMIN
 }
 
 enum UserStatus {
   ACTIVE
   SUSPENDED
+}
+
+enum ProductStatus {
+  ACTIVE
+  NOT_ACTIVE
 }

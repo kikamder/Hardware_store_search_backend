@@ -17,6 +17,13 @@ class ShopController {
     this.registerShop = this.registerShop.bind(this);
     this.addProduct = this.addProduct.bind(this);
     this.getProducts = this.getProducts.bind(this);
+    this.getDashboard = this.getDashboard.bind(this);
+    this.updateProfile = this.updateProfile.bind(this);
+    this.getShopProducts = this.getShopProducts.bind(this);
+    this.updateShopProduct = this.updateShopProduct.bind(this);
+    this.getStores = this.getStores.bind(this);
+    this.getStoreDetail = this.getStoreDetail.bind(this);
+    this.updateStoreStatus = this.updateStoreStatus.bind(this);
   }
 
   // ---------- Private helpers ----------
@@ -226,7 +233,191 @@ class ShopController {
       res.status(500).json({ status: 'error', message: 'Internal server error' });
     }
   }
+
+  async getDashboard(req, res) {
+    try {
+      const userId = req.user.userId; // มาจาก verifyToken - roleCheck('SHOP') เช็คสิทธิ์ก่อนถึงตรงนี้แล้ว
+ 
+      const dashboard = await this.shopService.getDashboard(userId);
+ 
+      if (!dashboard) {
+        return res.status(404).json({
+          status: 'error',
+          message: 'ไม่พบข้อมูลร้านค้าของผู้ใช้งานนี้',
+        });
+      }
+ 
+      res.status(200).json({
+        status: 'success',
+        message: 'ดึงข้อมูล Dashboard สำเร็จ',
+        data: dashboard,
+      });
+    } catch (error) {
+      console.error('Get Shop Dashboard Error:', error);
+      res.status(500).json({
+        status: 'error',
+        message: 'เกิดข้อผิดพลาดในการประมวลผลสถิติ โปรดลองใหม่อีกครั้ง',
+      });
+    }
+  }
+
+   async updateProfile(req, res) {
+    try {
+      const userId = req.user.userId;
+
+      const updatedShop = await this.shopService.updateShopProfile(userId, req.body);
+      return res.status(200).json({
+        status: 'success',
+        message: 'อัปเดตข้อมูลร้านค้าเรียบร้อยแล้ว',
+        data: {
+          shopId: updatedShop.shopId,
+          shopName: updatedShop.shopName,
+          updateData : req.body
+        },
+      });
+    } catch (error) {
+      const statusCode = error.statusCode || 500;
+      return res.status(statusCode).json({
+        status: 'error',
+        message: error.message || 'เกิดข้อผิดพลาดในระบบ',
+      });
+    }
+  }
+
+  async getShopProducts(req, res, next) {
+    try {
+      const userId = req.user.userId;
+      const { category, search, page, limit } = req.query;
+
+      const { products, totalItems, meta } = await this.productService.getShopProducts(
+        userId,
+        { category, search, page, limit },
+      );
+
+      return res.status(200).json({
+        status: 'success',
+        message: 'ดึงข้อมูลรายการสินค้าสำเร็จ',
+        data: { totalItems, products },
+        meta,
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  async updateShopProduct(req, res, next) {
+    try {
+      const userId = req.user.userId;
+      const { shopProductId } = req.params;
+
+      const data = await this.productService.updateShopProduct(userId, shopProductId, req.body);
+      
+      return res.status(200).json({
+        status: 'success',
+        message: 'อัปเดตข้อมูลสินค้าเรียบร้อยแล้ว',
+        data,
+      });
+    } catch (error) {
+      return res.status(error.statusCode || 500).json({
+        status: 'error',
+        message: error.message,
+      });
+    }
+  }
+
+  async getStores(req, res, next) {
+    try {
+      const { page, limit, search, status } = req.query;
+
+      const { summary, data, meta } = await this.shopService.getStores({
+        page,
+        limit,
+        search,
+        status,
+      });
+
+      return res.status(200).json({
+        status: 'success',
+        message: 'ดึงข้อมูลรายชื่อร้านค้าเรียบร้อยแล้ว',
+        summary,
+        data,
+        meta,
+      });
+    } catch (error) {
+      return res.status(error.statusCode || 500).json({
+        status: 'error',
+        message: error.message,
+      });
+    }
+  }
+
+  async getStores(req, res, next) {
+    try {
+      const { page, limit, search, status } = req.query;
+
+      const { summary, data, meta } = await this.shopService.getStores({
+        page,
+        limit,
+        search,
+        status,
+      });
+
+      return res.status(200).json({
+        status: 'success',
+        message: 'ดึงข้อมูลรายชื่อร้านค้าเรียบร้อยแล้ว',
+        summary,
+        data,
+        meta,
+      });
+    } catch (error) {
+      return res.status(error.statusCode || 500).json({
+        status: 'error',
+        message: error.message,
+      });
+    }
+  }
+
+  async getStoreDetail(req, res, next) {
+    try {
+      const { shopId } = req.params;
+
+      const data = await this.shopService.getStoreDetail(shopId);
+
+      return res.status(200).json({
+        status: 'success',
+        message: 'ดึงข้อมูลรายละเอียดร้านค้าเรียบร้อยแล้ว',
+        data,
+      });
+    } catch (error) {
+      return res.status(error.statusCode || 500).json({
+        status: 'error',
+        message: error.message,
+      });
+    }
+  }
+
+  async updateStoreStatus(req, res, next) {
+    try {
+      const adminUserId = req.user.userId;
+      const { shopId } = req.params;
+      const { shopStatus } = req.body;
+
+      const data = await this.shopService.updateStoreStatus(adminUserId, shopId, shopStatus);
+
+      return res.status(200).json({
+        status: 'success',
+        message: `อัปเดตสถานะร้านค้าเป็น ${data.shopStatus} เรียบร้อยแล้ว`,
+        data,
+      });
+    } catch (error) {
+      return res.status(error.statusCode || 500).json({
+        status: 'error',
+        message: error.message,
+      });
+    }
+  }
 }
+
 
 export { ShopController };
 export default new ShopController();

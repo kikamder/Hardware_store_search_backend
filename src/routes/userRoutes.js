@@ -4,7 +4,7 @@ import { verifyToken } from '../middlewares/authMiddleware.js';
 import  roleCheck  from '../middlewares/roleMiddleware.js';
 import shopController from '../controllers/shopController.js';
 import favoriteController from '../controllers/favoriteController.js';
-
+import userController from '../controllers/usersController.js';
 const router = express.Router();
 
 // ⚠️ ตั้งค่า multer แบบง่ายไว้ก่อน — ถ้าโปรเจกต์คุณมี config อัปโหลดไฟล์กลาง
@@ -13,6 +13,11 @@ const router = express.Router();
 // ใช้ memoryStorage เพราะ uploadService.uploadImage() ต้องการ buffer
 // (ไม่ใช้ diskStorage แล้ว เพราะไม่ต้องเก็บไฟล์ไว้ใน local disk ของ server เลย
 // ส่งตรงขึ้น Cloudinary ทันทีแทน)
+
+router.use(verifyToken);
+router.get('/users',roleCheck('ADMIN'), userController.getUsers);
+router.put('/users/:userId',roleCheck('ADMIN'), userController.updateUser);
+
 
 router.use(verifyToken,roleCheck('CUSTOMER'));
 const upload = multer({ storage: multer.memoryStorage() });
@@ -24,4 +29,13 @@ router.post('/shopRegister',upload.fields([
     ]),shopController.registerShop);
 
 router.post('/favorites/products',favoriteController.addFavorite);
+router.get('/favorites/products',favoriteController.getFavorites);
+router.delete('/favorites/products/:shopProductId', favoriteController.removeFavorite);
+
+router.post('/favorites/stores', favoriteController.addFavoriteShop);
+router.get('/favorites/stores', favoriteController.getFavoriteShops);
+router.delete('/favorites/stores/:shopId', favoriteController.removeFavoriteShop);
+
+
+
 export default router;

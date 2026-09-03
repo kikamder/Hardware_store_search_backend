@@ -36,6 +36,7 @@ const HARDWARE_CATEGORY_CONFIG = Object.freeze({
   },
 });
 
+const ALLOWED_UPDATE_FIELDS = ['customTitle', 'price', 'warranty', 'description', 'imageUrl', 'productStatus'];
 const DEFAULT_PAGE = 1;
 const DEFAULT_LIMIT = 20;
 const MAX_LIMIT = 100;
@@ -49,6 +50,7 @@ const STORE_DETAILS_REQUIRED_FIELDS = ['customTitle', 'price'];
 class ProductService {
   constructor({ prisma = prismaClient } = {}) {
     this.prisma = prisma;
+    
   }
 
   // ---------- Private helpers: validation ----------
@@ -225,15 +227,7 @@ class ProductService {
     );
   }
  
-  #normalizePagination(page, limit) {
-    const pageNumber = Math.max(1, Math.trunc(Number(page)) || DEFAULT_PAGE);
-    const limitNumber = Math.min(
-     MAX_LIMIT,
-     Math.max(1, Math.trunc(Number(limit)) || DEFAULT_LIMIT),
-    );
- 
-    return { pageNumber, limitNumber, skip: (pageNumber - 1) * limitNumber };
-  }
+  
 
   #buildWhereClause(category, search) {
     const where = {
@@ -251,6 +245,42 @@ class ProductService {
  
     return where;
   }
+
+   #mapToResponse(product) {
+    return {
+      shopProductId: product.shopProductId,
+      masterId: product.masterId,
+      category: product.master_hardware.category,
+      brand: product.master_hardware.brand,
+      customTitle: product.customTitle,
+      price: Number(product.price),
+      description: product.description,
+      productStatus: product.productStatus,
+      imageUrl: product.imageUrl,
+      updatedAt: product.updatedAt,
+    };
+  }
+
+  #findShopByUserId(userId) {
+    return this.prisma.shops.findUnique({ where: { userId } });
+  }
+
+  #filterAllowedFields(body = {}) {
+    return ALLOWED_UPDATE_FIELDS.reduce((acc, field) => {
+      if (Object.prototype.hasOwnProperty.call(body, field)) {
+        acc[field] = body[field];
+      }
+      return acc;
+    }, {});
+  }
+
+  #pickChangedFields(updated, updateData) {
+    return Object.keys(updateData).reduce((acc, field) => {
+      acc[field] = field === 'price' ? Number(updated[field]) : updated[field];
+      return acc;
+    }, {});
+  }
+
   // ---------- Public API ----------
 
   /**
@@ -259,6 +289,16 @@ class ProductService {
    * @param {object} payload - { category, hardware, storeDetails }
    * @returns {Promise<object>} ข้อมูลสินค้าที่เพิ่มสำเร็จ พร้อม flag isNewMasterDataCreated
    */
+
+  async normalizePagination(page, limit) {
+    const pageNumber = Math.max(1, Math.trunc(Number(page)) || DEFAULT_PAGE);
+    const limitNumber = Math.min(
+     MAX_LIMIT,
+     Math.max(1, Math.trunc(Number(limit)) || DEFAULT_LIMIT),
+    );
+ 
+    return { pageNumber, limitNumber, skip: (pageNumber - 1) * limitNumber };
+  }
   async addProductToStore(userId, payload) {
     const { category, hardware, storeDetails } = payload ?? {};
     
@@ -326,7 +366,7 @@ class ProductService {
 
   async getHardwareByCategory(category, { page, limit, search } = {}) {
     const config = this.#getCategoryConfigOrThrow(category);
-    const { pageNumber, limitNumber, skip } = this.#normalizePagination(page, limit);
+    const { pageNumber, limitNumber, skip } = this.normalizePagination(page, limit);
     const where = this.#buildWhereClause(category, search);
  
     // Step 1: ดึง master_hardware ตามหน้าที่ต้องการ พร้อม join ตารางสเปกเฉพาะทาง
@@ -362,6 +402,91 @@ class ProductService {
       },
     };
   }
+
+   async getShopProducts(userId, { category, search, page, limit } = {}) {
+
+    const shop = await this.#findShopByUserId(userId);
+    if (!shop) {
+      const error = new Error('Shop not found for this user');
+      error.statusCode = 403;
+      throw error;
+    }
+    const shopId = shop.shopId;
+
+    const { pageNumber, limitNumber } = await this.normalizePagination(page, limit);
+
+    const where = {
+      shopId,
+      ...(category && { master_hardware: { category } }),
+      ...(search && { customTitle: { contains: search, mode: 'insensitive' } }),
+    };
+    
+    const [products, totalItems] = await Promise.all([
+      this.prisma.shop_products.findMany({
+        where,
+        include: { master_hardware: true },
+        orderBy: { updatedAt: 'desc' },
+        skip: (pageNumber - 1) * limitNumber,
+        take: limitNumber,
+      }),
+      this.prisma.shop_products.count({ where }),
+    ]);
+
+    return {
+      products: products.map((product) => this.#mapToResponse(product)),
+      totalItems,
+      meta: {
+        page: pageNumber,
+        limit: limitNumber,
+        totalItems,
+        totalPages: Math.ceil(totalItems / limitNumber) || 0,
+      },
+    };
+  }
+
+  async updateShopProduct(userId, shopProductId, body) {
+  const shop = await this.#findShopByUserId(userId);
+  if (!shop) {
+    const error = new Error('Shop not found for this user');
+    error.statusCode = 403;
+    throw error;
+  }
+
+  const updateData = this.#filterAllowedFields(body);
+
+  if (Object.keys(updateData).length === 0) {
+    const error = new Error('ไม่มีข้อมูลสำหรับอัปเดต');
+    error.statusCode = 400;
+    throw error;
+  }
+
+  const product = await this.prisma.shop_products.findUnique({
+    where: { shopProductId: Number(shopProductId) },
+  });
+
+  if (!product) {
+    const error = new Error('ไม่พบรายการสินค้านี้ในระบบ');
+    error.statusCode = 404;
+    throw error;
+  }
+
+  if (product.shopId !== shop.shopId) {
+    const error = new Error('คุณไม่มีสิทธิ์แก้ไขสินค้ารายการนี้');
+    error.statusCode = 403;
+    throw error;
+  }
+
+  const updated = await this.prisma.shop_products.update({
+    where: { shopProductId: product.shopProductId },
+    data: { ...updateData, updatedAt: new Date() },
+  });
+
+  return {
+    shopProductId: updated.shopProductId,
+    updatedAt: updated.updatedAt,
+    ...this.#pickChangedFields(updated, updateData),
+  };
+}
 }
 
 export { ProductService };

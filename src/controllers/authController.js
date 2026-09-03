@@ -13,7 +13,7 @@ class AuthController {
     jwtLib = jwt,
     authSvc = authService,
     jwtSecret = process.env.JWT_SECRET,
-    accessTokenTTL = '1h',
+    accessTokenTTL = '3h',
   } = {}) {
     this.prisma = prisma;
     this.jwt = jwtLib;
