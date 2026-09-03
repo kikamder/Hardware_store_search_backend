@@ -3,7 +3,7 @@ function roleCheck(allowedRoles) {
   // รับได้ทั้ง string เดี่ยวๆ ('USER') หรือ array ('ADMIN', 'SHOP')
   // แปลงให้เป็น array เสมอ เพื่อเช็คแบบเดียวกันทั้งสองเคส
   const roles = Array.isArray(allowedRoles) ? allowedRoles : [allowedRoles];
- t
+ 
   return (req, res, next) => {
     // กันเคส authenticate middleware ยังไม่ได้ทำงานก่อน หรือลืมใส่ใน route
     if (!req.user) {
