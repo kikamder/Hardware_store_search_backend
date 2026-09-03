@@ -12,19 +12,14 @@ const __dirname = path.dirname(__filename);
  
 dotenv.config({ path: path.resolve(__dirname, '../../.env') });
  
-// ⚠️ pool/adapter ตัวนี้ยังไม่ได้ถูกใช้เชื่อมกับ PrismaClient ตัวไหนเลย
-// (prismaClient ที่ import มาด้านบนถูกสร้างไว้แล้วในไฟล์ configs/prismaClient.js)
-// เก็บไว้เผื่อจะใช้ในอนาคต แต่ตอนนี้เป็น dead code — ถ้าไม่ได้ใช้จริงแนะนำให้ลบทิ้ง
+
 const connectionString = process.env.DATABASE_URL;
 const { Pool } = pg;
 const pool = new Pool({ connectionString });
 const adapter = new PrismaPg(pool);
  
 class AuthService {
-  /**
-   * Dependency Injection เหมือนกับ AuthController
-   * เพื่อให้ mock ได้ตอนเทส (เช่น mock OAuth2Client เพื่อไม่ต้องยิง Google จริง)
-   */
+  
   constructor({
     prisma = prismaClient,
     jwtLib = jwt,
@@ -60,7 +55,6 @@ class AuthService {
     let user = await this.prisma.user.findUnique({ where: { email } });
  
     if (user) {
-      // 🟢 มี User อยู่แล้ว (ล็อกอินซ้ำ) -> อัปเดตข้อมูลล่าสุดจาก Google
       user = await this.prisma.user.update({
         where: { email },
         data: {
@@ -69,7 +63,7 @@ class AuthService {
         },
       });
     } else {
-      // 🔵 ยังไม่มี User -> สร้างใหม่ (Auto Register)
+      
       user = await this.prisma.user.create({
         data: {
           email,
@@ -93,7 +87,6 @@ class AuthService {
   }
  
   #signRefreshToken(user) {
-    // หมายเหตุ: ในระบบใหญ่ๆ นิยมตั้ง Secret แยกอีกตัวสำหรับ Refresh Token
     return this.jwt.sign(
       { userId: user.userId },
       this.jwtSecret,

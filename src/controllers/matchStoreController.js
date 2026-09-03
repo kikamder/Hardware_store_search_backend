@@ -16,8 +16,6 @@ class HardwareController {
 
   // ---------- Route handlers ----------
 
-  
-
   async matchStores(req, res) {
     try {
       const { hardwareList, userLocation } = req.body ?? {};

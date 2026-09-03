@@ -1,14 +1,5 @@
 import prismaClient from '../configs/prismaClient.js';
 
-/**
- * แมประหว่าง category (ตาม enum ในตาราง master_hardware)
- * กับตารางสเปกเฉพาะทาง (cpus, rams, vgas, mainboards, storages, psus)
- *
- * - table      : ชื่อ model ฝั่ง Prisma ที่ผูกกับตารางนั้น ๆ
- *                (ปรับชื่อให้ตรงกับที่ generate จริงใน schema.prisma ของโปรเจกต์)
- * - specFields : รายชื่อฟิลด์ที่ต้องมาใน req.body.hardware เพื่อ INSERT ลงตารางเฉพาะทาง
- *                (ไม่รวม brand / hardwareKey / displayName เพราะอยู่ที่ master_hardware)
- */
 const HARDWARE_CATEGORY_CONFIG = Object.freeze({
   CPU: {
     table: 'cpus',
@@ -55,10 +46,9 @@ class ProductService {
 
   // ---------- Private helpers: validation ----------
 
-  /**
-   * เช็คว่า category ที่ส่งมา รองรับในระบบหรือไม่
-   * คืนค่า config ของ category นั้น (table + specFields)
-   */
+  
+  //เช็คว่า category ที่ส่งมา รองรับในระบบหรือไม่
+  //คืนค่า config ของ category นั้น (table + specFields)
   #getCategoryConfigOrThrow(category) {
     const config = HARDWARE_CATEGORY_CONFIG[category];
     if (!config) {
@@ -70,18 +60,16 @@ class ProductService {
     return config;
   }
 
-  /**
-   * เช็ค field ที่บังคับต้องมี คืน array ชื่อ field ที่ขาด
-   */
+  
+  // เช็ค field ที่บังคับต้องมี คืน array ชื่อ field ที่ขาด
   #findMissingFields(source, requiredFields) {
     return requiredFields.filter(
       (field) => source?.[field] === undefined || source?.[field] === null || source?.[field] === '',
     );
   }
 
-  /**
-   * เช็คความครบถ้วนของ storeDetails (บังคับทุกกรณี)
-   */
+  
+  //เช็คความครบถ้วนของ storeDetails (บังคับทุกกรณี)
   #validateStoreDetails(storeDetails) {
     const missing = this.#findMissingFields(storeDetails, STORE_DETAILS_REQUIRED_FIELDS);
     if (missing.length > 0) {
@@ -91,10 +79,9 @@ class ProductService {
     }
   }
 
-  /**
-   * เช็คความครบถ้วนของ hardware payload กรณีต้องสร้าง master data ใหม่
-   * (ไม่มี product_model_id ส่งมา)
-   */
+  
+   //เช็คความครบถ้วนของ hardware payload กรณีต้องสร้าง master data ใหม่
+   //(ไม่มี product_model_id ส่งมา)
   #validateNewHardwarePayload(category, hardware, specFields) {
     const missingMaster = this.#findMissingFields(hardware, MASTER_HARDWARE_REQUIRED_FIELDS);
     const missingSpec = this.#findMissingFields(hardware, specFields);
@@ -109,9 +96,8 @@ class ProductService {
 
   // ---------- Private helpers: DB operations (ต้องอยู่ใน transaction เดียวกัน) ----------
 
-  /**
-   * สร้างแถวใหม่ในตาราง master_hardware
-   */
+  
+  //สร้างแถวใหม่ในตาราง master_hardware
   async #createMasterHardware(tx, category, hardware) {
     
     return tx.master_hardware.create({
@@ -125,10 +111,9 @@ class ProductService {
     });
   }
 
-  /**
-   * สร้างแถวในตารางสเปกเฉพาะทาง (cpus / rams / vgas / mainboards / storages / psus)
-   * โดยดึงเฉพาะ field ตามที่ config กำหนดของ category นั้น ๆ
-   */
+  
+  //สร้างแถวในตารางสเปกเฉพาะทาง (cpus / rams / vgas / mainboards / storages / psus)
+  //โดยดึงเฉพาะ field ตามที่ config กำหนดของ category นั้น ๆ
   async #createCategorySpecRecord(tx, config, masterId, hardware) {
     const specData = config.specFields.reduce((acc, field) => {
       acc[field] = hardware[field];
@@ -143,10 +128,9 @@ class ProductService {
     });
   }
 
-  /**
-   * หา masterId ของสเปกที่มีอยู่แล้ว จาก product_model_id ที่ client เลือกจาก dropdown
-   * พร้อมเช็คว่า category ตรงกับที่ระบุมาไหม กัน client ส่ง id ผิดหมวด
-   */
+  
+  //หา masterId ของสเปกที่มีอยู่แล้ว จาก product_model_id ที่ client เลือกจาก dropdown
+  //พร้อมเช็คว่า category ตรงกับที่ระบุมาไหม กัน client ส่ง id ผิดหมวด
   async #resolveExistingMasterId(tx, category, productModelId) {
     const existing = await tx.master_hardware.findUnique({
       where: { masterId: Number(productModelId) },
@@ -169,9 +153,8 @@ class ProductService {
     return existing.masterId;
   }
 
-  /**
-   * สร้าง master data ใหม่ทั้งคู่ (master_hardware + ตารางเฉพาะทาง) แล้วคืน masterId
-   */
+  
+  //สร้าง master data ใหม่ทั้งคู่ (master_hardware + ตารางเฉพาะทาง) แล้วคืน masterId
   async #createNewMasterData(tx, category, config, hardware) {
     this.#validateNewHardwarePayload(category, hardware, config.specFields);
 
@@ -184,9 +167,8 @@ class ProductService {
 
     // ---------- Private helpers: validation & param parsing ----------
 
-  /**
-   * แปลงข้อมูล master_hardware (ที่ join ตารางเฉพาะทางมาแล้ว) ให้เป็นรูปแบบที่ frontend ใช้แสดงผล
-   */
+  
+  //แปลงข้อมูล master_hardware (ที่ join ตารางเฉพาะทางมาแล้ว) ให้เป็นรูปแบบที่ frontend ใช้แสดงผล
   #formatHardwareListItem(masterRecord, config, priceRangeByMasterId) {
     const specRecord = masterRecord[config.table] ?? {};
     const specs = config.specFields.reduce((acc, field) => {
@@ -205,11 +187,9 @@ class ProductService {
     };
   }
 
-   /**
-   * หาช่วงราคา (MIN/MAX) ของแต่ละ masterId จากตาราง shop_products ในครั้งเดียว (group by)
-   * แทนที่จะ query ทีละตัวต่อ hardware หนึ่งชิ้น (กัน N+1)
-   * คืนค่าเป็น Map<masterId, { min, max }>
-   */
+   
+  //หาช่วงราคา (MIN/MAX) ของแต่ละ masterId จากตาราง shop_products ในครั้งเดียว (group by)
+  //คืนค่าเป็น Map<masterId, { min, max }>
   async #getPriceRangeByMasterIds(masterIds) {
     if (masterIds.length === 0) {
       return new Map();
@@ -282,13 +262,6 @@ class ProductService {
   }
 
   // ---------- Public API ----------
-
-  /**
-   * เพิ่มสินค้าใหม่เข้าร้านค้า
-   * @param {number} shopId - มาจาก token ของร้านค้าที่ login อยู่
-   * @param {object} payload - { category, hardware, storeDetails }
-   * @returns {Promise<object>} ข้อมูลสินค้าที่เพิ่มสำเร็จ พร้อม flag isNewMasterDataCreated
-   */
 
   async normalizePagination(page, limit) {
     const pageNumber = Math.max(1, Math.trunc(Number(page)) || DEFAULT_PAGE);

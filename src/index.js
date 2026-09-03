@@ -20,7 +20,7 @@ app.get('/', (req, res) => {
   res.json({ message: 'Backend Server is running successfully!' });
 });
 
-// เอา Route มาต่อเข้ากับระบบ
+
 app.use('/api/auth', authRoutes);
 app.use('/api/stores', shopRoute);
 //app.use('/api/upload', uploadRoutes);

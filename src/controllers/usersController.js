@@ -10,9 +10,6 @@ class UsersController {
     this.getUsers = this.getUsers.bind(this);
     this.updateUser = this.updateUser.bind(this);
   }
-
-    
-
     async getUsers(req, res, next) {
         try {
             const { page, limit, search, role, status } = req.query;

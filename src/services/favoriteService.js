@@ -12,9 +12,7 @@ class FavoriteService {
     return `${d}/${m}/${y}`;
   }
 
-  /**
-   * เช็คว่า shopProductId นี้มีอยู่จริงในระบบไหม ก่อนจะบันทึกลง favorite
-   */
+ 
   async shopProductExists(shopProductId) {
     const product = await this.prisma.shop_products.findUnique({
       where: { shopProductId },
@@ -31,10 +29,7 @@ class FavoriteService {
     return shop !== null;
   }
 
-  /**
-   * เพิ่มสินค้าลง favorite แบบ idempotent:
-   * กดซ้ำแล้วไม่ error (ไม่ชน unique constraint) แค่ return ของเดิมที่มีอยู่แล้ว
-   */
+
  async addFavorite(customerId, shopProductId) {
     const existing = await this.prisma.favorite_products.findUnique({
       where: { customerId_shopProductId: { customerId, shopProductId } },
@@ -49,7 +44,7 @@ class FavoriteService {
       };
     }
 
-    // ต้องรู้ masterId ก่อน ถึงจะ increment savedCount ของ hardware ตัวที่ถูกต้อง
+    
     const shopProduct = await this.prisma.shop_products.findUnique({
       where: { shopProductId },
       select: { masterId: true },

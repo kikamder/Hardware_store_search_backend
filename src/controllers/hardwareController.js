@@ -39,7 +39,6 @@ class HardwareController {
         meta: result.meta,
       });
     } catch (error) {
-      // error ที่โยนมาจาก service ชั้นนี้จะแนบ statusCode มาด้วย (เช่น 400 ถ้า category ไม่รองรับ)
       if (error.statusCode) {
         return res.status(error.statusCode).json({ error: error.message });
       }

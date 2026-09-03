@@ -18,9 +18,8 @@ class MatchStoreService {
 
   // ---------- Private helpers: validation ----------
 
-  /**
-   * เช็คว่า hardwareList เป็น array ที่มีของอย่างน้อย 1 ชิ้น และแต่ละชิ้นมี field ครบ
-   */
+  
+  //เช็คว่า hardwareList เป็น array ที่มีของอย่างน้อย 1 ชิ้น และแต่ละชิ้นมี field ครบ
   #validateHardwareList(hardwareList) {
     if (!Array.isArray(hardwareList) || hardwareList.length === 0) {
       const error = new Error('ต้องระบุ hardwareList อย่างน้อย 1 ชิ้น');
@@ -47,9 +46,8 @@ class MatchStoreService {
     }
   }
 
-  /**
-   * เช็ค userLocation (ไม่บังคับ แต่ถ้าส่งมาต้องมี latitude/longitude เป็นตัวเลขที่ถูกต้อง)
-   */
+  
+  //เช็ค userLocation (ไม่บังคับ แต่ถ้าส่งมาต้องมี latitude/longitude เป็นตัวเลขที่ถูกต้อง)
   #validateUserLocation(userLocation) {
     if (userLocation === undefined || userLocation === null) {
       return;
@@ -69,9 +67,8 @@ class MatchStoreService {
 
   // ---------- Private helpers: คำนวณ / จัดรูปแบบข้อมูล ----------
 
-  /**
-   * คำนวณระยะทางระหว่าง 2 พิกัด (กม.) ด้วยสูตร Haversine
-   */
+  
+  //คำนวณระยะทางระหว่าง 2 พิกัด (กม.) ด้วยสูตร Haversine
   #calculateDistanceKm(pointA, pointB) {
     const toRadians = (deg) => (deg * Math.PI) / 180;
 
@@ -86,13 +83,12 @@ class MatchStoreService {
 
     const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
 
-    return Math.round(EARTH_RADIUS_KM * c * 10) / 10; // ปัดทศนิยม 1 ตำแหน่ง
+    return Math.round(EARTH_RADIUS_KM * c * 10) / 10; 
   }
 
-  /**
-   * ดึง shop_products ทั้งหมดที่ตรงกับ masterId ที่ร้องขอ และเป็นสถานะ ACTIVE เท่านั้น
-   * พร้อม join ข้อมูลร้านค้ามาด้วย
-   */
+  
+  //ดึง shop_products ทั้งหมดที่ตรงกับ masterId ที่ร้องขอ และเป็นสถานะ ACTIVE เท่านั้น
+  //พร้อม join ข้อมูลร้านค้ามาด้วย
   async #findActiveShopProducts(masterIds) {
     return this.prisma.shop_products.findMany({
       where: {
@@ -105,10 +101,9 @@ class MatchStoreService {
     });
   }
 
-  /**
-   * จัดกลุ่ม shop_products ที่ query มาได้ ตาม shopId
-   * คืนค่าเป็น Map<shopId, { shop, productsByMasterId: Map<masterId, shopProduct> }>
-   */
+  
+  //จัดกลุ่ม shop_products ที่ query มาได้ ตาม shopId
+  //คืนค่าเป็น Map<shopId, { shop, productsByMasterId: Map<masterId, shopProduct> }>
   #groupShopProductsByShop(shopProducts) {
     const shopMap = new Map();
 
@@ -125,16 +120,16 @@ class MatchStoreService {
     return shopMap;
   }
 
-  /**
-   * สร้างรายละเอียดการจับคู่ (details) ของร้านค้าหนึ่งร้าน เทียบกับ hardwareList ที่ผู้ใช้เลือกมา
-   * เอาเฉพาะชิ้นที่ร้านนี้มีขายจริง (ACTIVE) เท่านั้น - ชิ้นที่ไม่มีจะไม่ถูกใส่เข้ามาใน details เลย
-   * คืนค่า { details, hardwareMatchCount, totalPrice }
-   */
+  
+   // สร้างรายละเอียดการจับคู่ (details) ของร้านค้าหนึ่งร้าน เทียบกับ hardwareList ที่ผู้ใช้เลือกมา
+   // เอาเฉพาะชิ้นที่ร้านนี้มีขายจริง (ACTIVE) เท่านั้น - ชิ้นที่ไม่มีจะไม่ถูกใส่เข้ามาใน details เลย
+   // คืนค่า { details, hardwareMatchCount, totalPrice }
   #buildShopMatchDetails(hardwareList, productsByMasterId) {
     let totalPrice = 0;
     const details = [];
     const seenIds = new Set();
     for (const { category, masterId } of hardwareList) {
+
       // 1. ทำให้ hardwareId กลายเป็น Array เสมอ (ไม่ว่าจะส่งมาเป็น 1 หรือ [1, 14])
       const idsToSearch = Array.isArray(masterId) ? masterId : [masterId];
 
@@ -145,7 +140,7 @@ class MatchStoreService {
           continue; // เจอ id นี้ไปแล้วก่อนหน้า ข้ามไปเลย กันนับซ้ำ
         } 
         seenIds.add(numericId);
-        // ใช้ Number(id) เพื่อความชัวร์ว่า Type ตรงกับ Key ใน Map แน่นอน
+        // ใช้ Number(id) เพื่อความชัวร์ว่า Type ตรงกับ Key ใน Map 
         const shopProduct = productsByMasterId.get(Number(id));
 
         if (!shopProduct) {
@@ -157,7 +152,7 @@ class MatchStoreService {
         details.push({
           category,
           masterId: Number(id), // เปลี่ยนมาใช้ id เดี่ยวๆ แทน
-           productStatus: PRODUCT_STATUS.ACTIVE, // อย่าลืมเช็คว่ามีตัวแปรนี้ประกาศไว้ในไฟล์นี้มั้ยนะครับ
+           productStatus: PRODUCT_STATUS.ACTIVE,
           shopProductId: shopProduct.shopProductId,
           price: Number(shopProduct.price),
         });
@@ -167,9 +162,8 @@ class MatchStoreService {
     return { details, hardwareMatchCount: details.length, totalPrice };
   }
 
-  /**
-   * ประกอบข้อมูลร้านค้าหนึ่งร้านให้เป็นรูปแบบ response สุดท้าย
-   */
+  
+  //ประกอบข้อมูลร้านค้าหนึ่งร้านให้เป็นรูปแบบ response สุดท้าย
   #formatShopResult(shopId, shop, details, hardwareMatchCount, totalPrice, userLocation) {
     const hasShopCoordinates = shop?.latitude != null && shop?.longitude != null;
     const distanceKm =
@@ -195,9 +189,8 @@ class MatchStoreService {
     };
   }
 
-  /**
-   * เรียงลำดับร้านค้า: จำนวนชิ้นที่ตรงมากสุดก่อน ถ้าเท่ากันให้ร้านที่ใกล้กว่ามาก่อน
-   */
+  
+  //เรียงลำดับร้านค้า: จำนวนชิ้นที่ตรงมากสุดก่อน ถ้าเท่ากันให้ร้านที่ใกล้กว่ามาก่อน
   #sortShopResults(results) {
     return results.sort((a, b) => {
       if (b.hardwareMatchCount !== a.hardwareMatchCount) {
@@ -212,12 +205,8 @@ class MatchStoreService {
 
   // ---------- Public API ----------
 
-  /**
-   * ค้นหาและจับคู่ร้านค้าที่มีสินค้าตรงกับ hardwareList ที่ผู้ใช้เลือกไว้
-   *
-   * @param {object} payload - { hardwareList, userLocation }
-   * @returns {Promise<object[]>} รายชื่อร้านค้าที่มีสินค้าตรงอย่างน้อย 1 ชิ้น เรียงจากตรงมากไปน้อย
-   */
+  
+  //ค้นหาและจับคู่ร้านค้าที่มีสินค้าตรงกับ hardwareList ที่ผู้ใช้เลือกไว้
   async matchStoresByHardwareList({ hardwareList, userLocation } = {}) {
     this.#validateHardwareList(hardwareList);
     this.#validateUserLocation(userLocation);

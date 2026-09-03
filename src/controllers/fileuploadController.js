@@ -9,7 +9,6 @@ class UploadController {
     try {
       if (!req.file) return res.status(400).json({ error: 'No file provided' });
 
-      // req.user?.userId เผื่อ route นี้ไม่ได้บังคับผ่าน verifyToken เสมอไป
       const imageUrl = await uploadService.uploadImage(req.file.buffer, req.user?.userId);
 
       res.status(200).json({ url: imageUrl });

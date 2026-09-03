@@ -3,11 +3,7 @@ import prismaClient from '../configs/prismaClient.js';
 import jwt from 'jsonwebtoken';
 
 class AuthController {
-  /**
-   * ใช้ Dependency Injection แทนการ import ตรงๆ ในตัว method
-   * เพื่อให้ Controller แยกอิสระจาก Prisma/JWT/authService จริงๆ
-   * (Testable: ตอน unit test สามารถส่ง mock object เข้ามาแทนได้)
-   */
+
   constructor({
     prisma = prismaClient,
     jwtLib = jwt,
@@ -21,8 +17,7 @@ class AuthController {
     this.jwtSecret = jwtSecret;
     this.accessTokenTTL = accessTokenTTL;
 
-    // Bind methods เพื่อให้ใช้เป็น express route handler ได้ตรงๆ
-    // (กัน error "this is undefined" ตอน destructure ไปใช้กับ router)
+    // Bind methods เพื่อให้ใช้เป็น express route handler ได้ตรง
     this.googleLogin = this.googleLogin.bind(this);
     this.getMe = this.getMe.bind(this);
     this.logout = this.logout.bind(this);
@@ -146,7 +141,6 @@ class AuthController {
         return this.#sendError(res, 403, 'Refresh token expired or invalid');
       }
 
-      // เช็คว่า token นี้ยังตรงกับที่เก็บใน DB จริงไหม (ป้องกัน token ที่ถูก revoke แล้ว)
       const user = await this.prisma.user.findFirst({
         where: {
           userId: payload.userId,
@@ -168,5 +162,4 @@ class AuthController {
   }
 }
 
-// Export ทั้ง class (สำหรับ test / DI) และ instance สำเร็จรูป (สำหรับใช้ใน route ปกติ)
 export default new AuthController();

@@ -28,10 +28,9 @@ class ShopController {
 
   // ---------- Private helpers ----------
 
-  /**
-   * เช็คว่า field ที่บังคับ (required) ตามสเปกมีมาครบไหม
-   * คืนค่า array ของชื่อ field ที่ขาด (ว่างถ้าครบ)
-   */
+  
+  //เช็คว่า field ที่บังคับ (required) ตามสเปกมีมาครบไหม
+  //คืนค่า array ของชื่อ field ที่ขาด (ว่างถ้าครบ)
   #validateRequiredFields(body) {
     const requiredFields = [
       'ownerFirstName',
@@ -52,20 +51,18 @@ class ShopController {
     return requiredFields.filter((field) => !body[field]);
   }
 
-  /**
-   * เช็คว่า body ของการเพิ่มสินค้ามีโครงสร้างหลักครบไหม (category / hardware / storeDetails)
-   * คืนค่า array ของชื่อ field ที่ขาด (ว่างถ้าครบ)
-   */
+  
+   //เช็คว่า body ของการเพิ่มสินค้ามีโครงสร้างหลักครบไหม (category / hardware / storeDetails)
+   // คืนค่า array ของชื่อ field ที่ขาด (ว่างถ้าครบ)
   #validateAddProductFields(body) {
     const requiredTopLevelFields = ['category', 'hardware', 'storeDetails'];
     return requiredTopLevelFields.filter((field) => !body?.[field]);
   }
 
-  /**
-   * อัปโหลดไฟล์ทั้งหมดที่มีขึ้น Cloudinary พร้อมกัน (Promise.all)
-   * แล้ว return object ของ URL แต่ละรูป พร้อมส่งต่อให้ shopService บันทึกลง DB
-   * ไฟล์ไหนไม่มีมา (เช่น businessRegImage ที่ไม่บังคับ) จะได้ค่า undefined ไป
-   */
+  
+   // อัปโหลดไฟล์ทั้งหมดที่มีขึ้น Cloudinary พร้อมกัน
+   // แล้ว return object ของ URL แต่ละรูป พร้อมส่งต่อให้ shopService บันทึกลง DB
+   // ไฟล์ไหนไม่มีมา (เช่น businessRegImage ที่ไม่บังคับ) จะได้ค่า undefined ไป
   async #uploadShopImages(files, userId) {
     const uploadIfExists = (file, label) =>
       file ? this.fileUploadService.uploadImage(file.buffer, userId, label) : undefined;
@@ -84,7 +81,7 @@ class ShopController {
 
   async registerShop(req, res) {
     try {
-      const userId = req.user.userId; // มาจาก verifyToken middleware
+      const userId = req.user.userId; 
 
       const missingFields = this.#validateRequiredFields(req.body);
       if (missingFields.length > 0) {
@@ -93,7 +90,6 @@ class ShopController {
         });
       }
 
-      // รูปบัตรประชาชนกับรูปหน้าร้าน บังคับตามสเปก (businessRegImage ไม่บังคับ)
       if (!req.files?.idCardImage) {
         return res.status(400).json({ error: 'Missing required file: idCardImage' });
       }
@@ -124,15 +120,11 @@ class ShopController {
     }
   }
 
-  /**
-   * POST /api/stores/products
-   * เพิ่มสินค้าใหม่เข้าร้านค้า โดยแยกบันทึกข้อมูลฮาร์ดแวร์ลงตารางเฉพาะทางตาม category
-   * และผูก masterId เข้ากับ shop_products
-   */
+  
   async addProduct(req, res) {
     try {
       
-      const userId = req.user.userId; // มาจาก verifyShopToken middleware
+      const userId = req.user.userId; 
 
       const missingFields = this.#validateAddProductFields(req.body);
       if (missingFields.length > 0) {
@@ -149,8 +141,7 @@ class ShopController {
         data,
       });
     } catch (error) {
-      // error ที่โยนมาจาก service ชั้นนี้จะแนบ statusCode มาด้วย (400/404 เป็นต้น)
-      // ถ้าไม่มี ให้ถือว่าเป็น error ไม่คาดคิด -> 500
+      
       if (error.statusCode) {
         return res.status(error.statusCode).json({ error: error.message });
       }
@@ -164,7 +155,6 @@ class ShopController {
     try {
       const shopId = Number(req.params.shopId);
  
-      // shopId ต้องเป็นตัวเลขเท่านั้น ตามที่สเปกระบุ error case ไว้
       if (!Number.isInteger(shopId)) {
         return res.status(400).json({
           status: 'error',
@@ -199,7 +189,7 @@ class ShopController {
         return res.status(400).json({ status: 'error', message: 'shopId ต้องเป็นตัวเลข' });
       }
  
-      // page/limit ไม่บังคับตามสเปก ใช้ default 1/20 ถ้าไม่ส่งมา หรือส่งมาแบบแปลกๆ (parse ไม่ได้)
+      
       const page = Math.max(1, parseInt(req.query.page, 10) || 1);
       const limit = Math.max(1, parseInt(req.query.limit, 10) || 20);
  
@@ -236,7 +226,7 @@ class ShopController {
 
   async getDashboard(req, res) {
     try {
-      const userId = req.user.userId; // มาจาก verifyToken - roleCheck('SHOP') เช็คสิทธิ์ก่อนถึงตรงนี้แล้ว
+      const userId = req.user.userId; 
  
       const dashboard = await this.shopService.getDashboard(userId);
  

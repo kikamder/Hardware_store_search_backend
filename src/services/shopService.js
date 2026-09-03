@@ -33,30 +33,23 @@ class ShopService {
   
   // ---------- Private helpers ----------
 
-  /**
-   * รวม field จาก req.body (string ล้วน เพราะมาจาก multipart/form-data)
-   * ให้เป็น object พร้อมแปลง type ที่จำเป็น (lat/long ต้องเป็น Number)
-   *
-   * อิงตาม schema จริง: field เจ้าของร้านคือ userId (ไม่ใช่ ownerId),
-   * field รูปภาพไม่มีคำว่า Url ต่อท้าย (idCardImage/businessRegImage/storeImnage)
-   */
+  
+  //รวม field จาก req.body (string ล้วน เพราะมาจาก multipart/form-data)
+  //ให้เป็น object พร้อมแปลง type ที่จำเป็น (lat/long ต้องเป็น Number)
   #buildShopData(userId, body, imageFiles) {
     return {
       userId,
       ownerFirstName: body.ownerFirstName,
       ownerLastName: body.ownerLastName,
       shopName: body.shopName,
-      shopDescription: body.shopDescription ?? null, // มีใน DB แต่ไม่ได้อยู่ใน spec เอกสารเดิม
+      shopDescription: body.shopDescription ?? null, 
       addressText: body.addressText,
       subDistrict: body.subDistrict,
       district: body.district,
       province: body.province,
       zipCode: body.zipCode,
-      // ⚠️ คอลัมน์เป็น jsonb แต่ค่าที่ส่งมาเป็น string ธรรมดา
-      // เก็บเป็น JSON scalar (string) ไปตรงๆ ก่อน - ดูหมายเหตุท้ายไฟล์ว่าควรปรับโครงสร้างไหม
       contactChannels: body.contactChannels,
       ownerPhone: body.ownerPhone,
-      // FormData ส่งมาเป็น string เสมอ ต้องแปลงเป็นตัวเลขก่อนบันทึก
       latitude: parseFloat(body.latitude),
       longitude: parseFloat(body.longitude),
       operatingHours: body.operatingHours,
@@ -64,7 +57,6 @@ class ShopService {
       idCardImage: imageFiles.idCardImage,
       businessRegImage: imageFiles.businessRegImage ?? null,
       storeImnage: imageFiles.storeImnage,
-      // ร้านใหม่ต้องรอแอดมินอนุมัติก่อนเสมอ ตามสเปก
       shopStatus: 'PENDING',
       submittedAt: new Date(),
     };
@@ -83,9 +75,8 @@ class ShopService {
     };
   }
  
-  /**
-   * แปลง record จาก DB ให้เป็นรูปแบบ response ตามสเปก getShopProfile
-   */
+  
+  //แปลง record จาก DB ให้เป็นรูปแบบ response ตามสเปก getShopProfile
   #toProfileResponse(shop) {
     return {
       shopId: shop.shopId,
@@ -93,6 +84,7 @@ class ShopService {
       description: shop.shopDescription,
       profileImageUrl: shop.profileImageUrl,
       fullAddress: this.#buildFullAddress(shop),
+
       // Prisma คืน Decimal เป็น object พิเศษ ต้องแปลงเป็น Number ก่อนส่งเป็น JSON
       // ไม่งั้นจะได้ค่าประหลาดหรือ error ตอน serialize
       latitude: shop.latitude !== null ? Number(shop.latitude) : null,
@@ -267,14 +259,6 @@ class ShopService {
 
   // ---------- Public API ----------
 
-  /**
-   * สมัครเปิดร้านค้าใหม่
-   * @param {number} userId - userId จาก JWT (ผูกเป็นเจ้าของร้านอัตโนมัติ)
-   * @param {object} body - ข้อมูลร้านค้าจาก req.body
-   * @param {object} imageFiles - path ของรูปที่อัปโหลดแล้ว (มาจาก multer)
-   */
-  
-  
   async registerShop(userId, body, imageFiles) {
     const data = this.#buildShopData(userId, body, imageFiles);
 

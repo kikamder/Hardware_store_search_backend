@@ -5,11 +5,7 @@ class HardwareService {
     this.prisma = prisma;
   }
 
-  /**
-   * ค้นหา hardware ตาม category + keyword แบบ autocomplete
-   * เอาแค่ field ที่จำเป็น (masterId, displayName) เพราะ dropdown ไม่ต้องใช้ข้อมูลเยอะ
-   * ยิ่ง select น้อย ยิ่งเร็ว เหมาะกับ endpoint ที่ต้อง real-time ตามที่พิมพ์
-   */
+ 
   async autocomplete(category, keyword) {
     return this.prisma.master_hardware.findMany({
       where: {
@@ -24,7 +20,7 @@ class HardwareService {
         displayName: true,
       },
       orderBy: {
-        searchCount: 'desc', // ของที่คนค้นบ่อยกว่า ขึ้นก่อน
+        searchCount: 'desc', 
       },
       take: 10,
     });

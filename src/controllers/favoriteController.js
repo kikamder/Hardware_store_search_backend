@@ -12,9 +12,11 @@ class FavoriteController {
     this.removeFavoriteShop = this.removeFavoriteShop.bind(this);
   }
 
+    // ---------- Route handlers ----------
+
   async addFavorite(req, res) {
     try {
-        const customerId = req.user.userId; // มาจาก verifyToken middleware
+        const customerId = req.user.userId;
         const { shopProductId } = req.body || {};
         
         
