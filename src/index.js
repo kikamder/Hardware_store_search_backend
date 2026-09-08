@@ -9,6 +9,7 @@ import shopRoute from './routes/shopRoutes.js';
 import userRoutes from './routes/userRoutes.js';
 import hardwareRoutes from './routes/hardwareRoutes.js';
 import buildRoutes from './routes/buildRoutes.js'; 
+import dropdownRoutes from './routes/dropdownRoutes.js';
 const app = express();
 
 app.use(cors({
@@ -27,7 +28,7 @@ app.use('/api/stores', shopRoute);
 app.use('/api/users', userRoutes);
 app.use('/api/hardware',hardwareRoutes);
 app.use('/api/builds', buildRoutes);
-
+app.use('/api/dropdowns', dropdownRoutes);
 const PORT = process.env.PORT;
 app.listen(PORT, '0.0.0.0', () => {
   console.log(`Server is running on port ${PORT}`);
