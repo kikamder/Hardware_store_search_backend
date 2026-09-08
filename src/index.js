@@ -23,27 +23,33 @@ app.get('/', (req, res) => {
 
 
 
-app.get('/debug/db-connectivity', (req, res) => {
-  const host = 'aws-0-ap-northeast-1.pooler.supabase.com';
-  const port = 5432;
-  const socket = new net.Socket();
-  const start = Date.now();
+app.get('/debug/db-connectivity', async (req, res) => {
+  const testHost = (host, port) => new Promise((resolve) => {
+    const socket = new net.Socket();
+    const start = Date.now();
+    socket.setTimeout(5000);
 
-  socket.setTimeout(5000);
-
-  socket.connect(port, host, () => {
-    res.json({ status: 'connected', ms: Date.now() - start, host, port });
-    socket.destroy();
+    socket.connect(port, host, () => {
+      resolve({ host, port, status: 'connected', ms: Date.now() - start });
+      socket.destroy();
+    });
+    socket.on('timeout', () => {
+      resolve({ host, port, status: 'timeout', ms: Date.now() - start });
+      socket.destroy();
+    });
+    socket.on('error', (err) => {
+      resolve({ host, port, status: 'error', message: err.message, ms: Date.now() - start });
+    });
   });
 
-  socket.on('timeout', () => {
-    res.json({ status: 'timeout', ms: Date.now() - start, host, port });
-    socket.destroy();
-  });
+  const results = await Promise.all([
+    testHost('aws-0-ap-northeast-1.pooler.supabase.com', 5432),  // Supabase pooler ที่พังอยู่
+    testHost('aws-0-ap-northeast-1.pooler.supabase.com', 6543),  // Supabase transaction pooler
+    testHost('google.com', 443),                                   // host ทั่วไปที่ควรต่อได้แน่ๆ
+    testHost('8.8.8.8', 53),                                       // Google DNS ตรงๆ (ไม่พึ่ง DNS resolve)
+  ]);
 
-  socket.on('error', (err) => {
-    res.json({ status: 'error', message: err.message, ms: Date.now() - start, host, port });
-  });
+  res.json(results);
 });
 
 app.use('/api/auth', authRoutes);
