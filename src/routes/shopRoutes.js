@@ -5,7 +5,7 @@ import { verifyToken } from '../middlewares/authMiddleware.js';
 const router = express.Router();
 
 
-router.get('/:shopId/getProfile', ShopController.getProfile);
+router.get('/:shopId/profile', ShopController.getProfile);
 router.get('/:shopId/products', ShopController.getProducts);
 
 router.get('/stores',verifyToken,roleCheck('ADMIN'), ShopController.getStores);
