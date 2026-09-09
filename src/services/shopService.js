@@ -159,10 +159,7 @@ class ShopService {
     return dataToUpdate;
   }
 
-  #findShopByUserId(userId) {
-    
-    return this.prisma.shops.findUnique({ where: { userId } });
-  }
+  
 
   async #getSummary() {
     const grouped = await this.prisma.shops.groupBy({
@@ -258,6 +255,10 @@ class ShopService {
   }
 
   // ---------- Public API ----------
+
+  async findShopByUserId(userId) {
+    return this.prisma.shops.findUnique({ where: { userId } });
+  }
 
   async registerShop(userId, body, imageFiles) {
     const data = this.#buildShopData(userId, body, imageFiles);
@@ -356,7 +357,7 @@ class ShopService {
   }
 
   async getDashboard(userId) {
-    const shop = await this.#findShopByUserId(userId);
+    const shop = await this.findShopByUserId(userId);
     if (!shop) return null;
  
     const { shopId } = shop;
@@ -396,7 +397,7 @@ class ShopService {
   }
 
   async updateShopProfile(userId, payload) {
-    const shop = await this.#findShopByUserId(userId);
+    const shop = await this.findShopByUserId(userId);
     const dataToUpdate = this.#buildUpdatePayload(payload);
 
     const updatedShop = await this.prisma.shops.update({
