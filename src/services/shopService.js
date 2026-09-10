@@ -332,6 +332,7 @@ class ShopService {
  
     const where = {
       shopId,
+      productStatus: 'ACTIVE',
       // ใส่เงื่อนไข category ก็ต่อเมื่อมีการกรองจริง ไม่งั้นจะ join แบบไม่จำเป็น
       ...(category && { master_hardware: { category } }),
     };
@@ -340,9 +341,7 @@ class ShopService {
  
     const [products, totalItems] = await Promise.all([
       this.prisma.shop_products.findMany({
-        where : {
-          productStatus: 'ACTIVE'
-        },
+        where,
         skip,
         take: limit,
         select: {
