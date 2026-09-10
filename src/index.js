@@ -2,6 +2,7 @@ import 'dotenv/config';
 import express from 'express';
 import cors from 'cors';
 import net from 'net';
+import morgan from 'morgan';
 
 import prismaClient from './configs/prismaClient.js';
 import authRoutes from './routes/authRoutes.js';
@@ -12,6 +13,8 @@ import hardwareRoutes from './routes/hardwareRoutes.js';
 import buildRoutes from './routes/buildRoutes.js'; 
 import dropdownRoutes from './routes/dropdownRoutes.js';
 const app = express();
+
+app.use(morgan('combined'));
 
 app.use(cors({
   origin: ['http://localhost:5173', 'https://pc-finder-frontend-2.vercel.app']
@@ -51,4 +54,5 @@ async function gracefulShutdown(signal) {
 
 process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));
 process.on('SIGINT', () => gracefulShutdown('SIGINT'));
+
 

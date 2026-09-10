@@ -18,4 +18,5 @@ router.get('/dashboard', ShopController.getDashboard);
 router.put('/profile', ShopController.updateProfile);
 router.get('/products', ShopController.getShopProducts);
 router.put('/products/:shopProductId', ShopController.updateShopProduct);
+router.get('/profile/me', ShopController.getMyShopProfile);
 export default router;

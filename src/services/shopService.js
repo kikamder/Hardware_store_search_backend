@@ -255,6 +255,27 @@ class ShopService {
     };
   }
 
+  #mapToResponse_MyShopProfile(shop) {
+    return {
+      shopName: shop.shopName,
+      profileImageUrl: shop.profileImageUrl,
+      shopDescription: shop.shopDescription,
+      operatingHours: shop.operatingHours,
+      contactChannels: shop.contactChannels,
+      addressText: shop.addressText,
+      subDistrict: shop.subDistrict,
+      district: shop.district,
+      province: shop.province,
+      zipCode: shop.zipCode,
+      latitude: shop.latitude ? Number(shop.latitude) : null,
+      longitude: shop.longitude ? Number(shop.longitude) : null,
+      ownerPhone: shop.ownerPhone,
+    };
+  }
+
+
+  
+
   // ---------- Public API ----------
 
   async findShopByUserId(userId) {
@@ -471,53 +492,65 @@ class ShopService {
   }
 
   async updateStoreStatus(adminUserId, shopId, shopStatus) {
-  if (!shopStatus || !VALID_SHOP_STATUSES.includes(shopStatus)) {
-    const error = new Error('สถานะร้านค้าที่ระบุไม่ถูกต้อง');
-    error.statusCode = 400;
-    throw error;
-  }
+      if (!shopStatus || !VALID_SHOP_STATUSES.includes(shopStatus)) {
+        const error = new Error('สถานะร้านค้าที่ระบุไม่ถูกต้อง');
+        error.statusCode = 400;
+        throw error;
+      }
 
-  const shop = await this.prisma.shops.findUnique({
-    where: { shopId: Number(shopId) },
-    include: { user: true },
-  });
+      const shop = await this.prisma.shops.findUnique({
+        where: { shopId: Number(shopId) },
+        include: { user: true },
+      });
 
-  if (!shop) {
-    const error = new Error('ไม่พบร้านค้านี้ในระบบ');
-    error.statusCode = 404;
-    throw error;
-  }
+      if (!shop) {
+        const error = new Error('ไม่พบร้านค้านี้ในระบบ');
+        error.statusCode = 404;
+        throw error;
+      }
 
-  const isFirstApproval = shopStatus === 'OPEN' && shop.approveAt === null;
+      const isFirstApproval = shopStatus === 'OPEN' && shop.approveAt === null;
 
-  const updated = await this.prisma.$transaction(async (tx) => {
-    const updatedShop = await tx.shops.update({
-      where: { shopId: shop.shopId },
-      data: {
-        shopStatus,
-        ...(isFirstApproval && {
-          approveAt: new Date(),
-          approveBy: adminUserId,
-        }),
-      },
+      const updated = await this.prisma.$transaction(async (tx) => {
+      const updatedShop = await tx.shops.update({
+        where: { shopId: shop.shopId },
+        data: {
+          shopStatus,
+          ...(isFirstApproval && {
+            approveAt: new Date(),
+            approveBy: adminUserId,
+          }),
+        },
+      });
+
+      if (isFirstApproval && shop.user.userRole === 'CUSTOMER') {
+        await tx.user.update({
+          where: { userId: shop.userId },
+          data: { userRole: 'SHOP' },
+        });
+      }
+
+      return updatedShop;
     });
 
-    if (isFirstApproval && shop.user.userRole === 'CUSTOMER') {
-      await tx.user.update({
-        where: { userId: shop.userId },
-        data: { userRole: 'SHOP' },
-      });
+    return {
+      shopId: updated.shopId,
+      shopName: updated.shopName,
+      shopStatus: updated.shopStatus,
+    };
+  }
+
+  async getMyShopProfile(userId) {
+    const shop = await this.findShopByUserId(userId);
+
+    if (!shop) {
+      const error = new Error('ไม่พบร้านค้าของผู้ใช้งานนี้');
+      error.statusCode = 403;
+      throw error;
     }
 
-    return updatedShop;
-  });
-
-  return {
-    shopId: updated.shopId,
-    shopName: updated.shopName,
-    shopStatus: updated.shopStatus,
-  };
-}
+    return this.#mapToResponse_MyShopProfile(shop);
+  }
 
 }
 

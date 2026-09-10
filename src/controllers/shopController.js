@@ -24,6 +24,7 @@ class ShopController {
     this.getStores = this.getStores.bind(this);
     this.getStoreDetail = this.getStoreDetail.bind(this);
     this.updateStoreStatus = this.updateStoreStatus.bind(this);
+    this.getMyShopProfile = this.getMyShopProfile.bind(this);
   }
 
   // ---------- Private helpers ----------
@@ -386,7 +387,7 @@ class ShopController {
     }
   }
 
-  async updateStoreStatus(req, res, next) {
+  async updateStoreStatus(req, res) {
     try {
       const adminUserId = req.user.userId;
       const { shopId } = req.params;
@@ -406,7 +407,26 @@ class ShopController {
       });
     }
   }
+
+  async getMyShopProfile(req, res) {
+    try {
+      const userId = req.user.userId;
+
+      const data = await this.shopService.getMyShopProfile(userId);
+
+      return res.status(200).json({
+        status: 'success',
+        data,
+      });
+    } catch (error) {
+      return res.status(error.statusCode || 500).json({
+        status: 'error',
+        message: error.message,
+      });
+    }
+  }
 }
+
 
 
 export { ShopController };
