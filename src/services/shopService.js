@@ -69,8 +69,8 @@ class ShopService {
 
   #buildContact(contactChannels) {
     return {
-      phone: contactChannels?.phone ?? null,
-      lineId: contactChannels?.lineId ?? null,
+      line: contactChannels?.line ?? null,
+      website: contactChannels?.website ?? null,
       facebook: contactChannels?.facebook ?? null,
     };
   }
@@ -90,6 +90,7 @@ class ShopService {
       latitude: shop.latitude !== null ? Number(shop.latitude) : null,
       longitude: shop.longitude !== null ? Number(shop.longitude) : null,
       contact: this.#buildContact(shop.contactChannels),
+      ownerPhone: shop.ownerPhone,
       operatingHours: shop.operatingHours,
     };
   }
@@ -290,6 +291,7 @@ class ShopService {
         latitude: true,
         longitude: true,
         contactChannels: true,
+        ownerPhone: true,
         operatingHours: true,
       },
     });
@@ -409,7 +411,7 @@ class ShopService {
   }
   
   async getStores({ page, limit, search, status } = {}) {
-    const { pageNumber, limitNumber } = await this.#normalizePagination(page, limit);
+    const { pageNumber, limitNumber } = this.#normalizePagination(page, limit);
 
     const where = {
       ...(status && { shopStatus: status }),

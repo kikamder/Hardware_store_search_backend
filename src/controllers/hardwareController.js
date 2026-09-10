@@ -7,15 +7,14 @@ const VALID_CATEGORIES = ['CPU', 'RAM', 'VGA', 'MAINBOARD', 'STORAGE', 'PSU'];
 class HardwareController {
   constructor({ 
         productService = productServiceInstance , 
-        
         hardwareService = hardwareServiceInstance
     } = {}) {
         this.productService = productService;
-        this.getHardwareByCategory = this.getHardwareByCategory.bind(this);
-        
         this.hardwareService = hardwareService;
+        
+        this.getHardwareByCategory = this.getHardwareByCategory.bind(this);
         this.autocomplete = this.autocomplete.bind(this);
-
+        this.getHardwareDetail = this.getHardwareDetail.bind(this);
     }
 
   // ---------- Route handlers ----------
@@ -66,11 +65,29 @@ class HardwareController {
       }
  
       const data = await this.hardwareService.autocomplete(category, keyword);
- 
+      
       res.status(200).json({ status: 'success', data });
     } catch (error) {
       console.error('Hardware Autocomplete Error:', error);
       res.status(500).json({ error: 'Internal server error' });
+    }
+  }
+
+  async getHardwareDetail(req, res) {
+    try {
+      const { masterId } = req.params;
+
+      const data = await this.hardwareService.getHardwareDetail(masterId);
+
+      return res.status(200).json({
+        status: 'success',
+        data,
+      });
+    } catch (error) {
+      return res.status(error.statusCode || 500).json({
+        status: 'error',
+        message: error.message,
+      });
     }
   }
 
