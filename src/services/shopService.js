@@ -250,7 +250,7 @@ class ShopService {
         businessRegImage: shop.businessRegImage,
         storeImnage: shop.storeImnage,
         approveAt: shop.approveAt,
-        approveBy: shop.approveBy,
+        approveBy: shop.approvedByAdmin?.displayName ?? null,
       },
     };
   }
@@ -468,12 +468,16 @@ class ShopService {
     };
   }
 
+  //admin view store detail
   async getStoreDetail(shopId) {
     const shop = await this.prisma.shops.findUnique({
       where: { shopId: Number(shopId) },
       include: {
         user: {
           select: { userId: true, email: true },
+        },
+        approvedByAdmin: {
+          select: { displayName: true},
         },
         _count: {
           select: { shop_products: true, favorite_shops: true },

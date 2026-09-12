@@ -133,13 +133,15 @@ model shops {
   shopStatus       ShopStatus
   submittedAt      DateTime         @default(now())
   approveAt        DateTime?
-  approveBy        Int              @default(1)
+  approveBy        Int              
   businessRegImage String?
   idCardImage      String?
   storeImnage      String?
+
   favorite_shops   favorite_shops[]
   shop_products    shop_products[]
   user             User             @relation(fields: [userId], references: [userId])
+  approvedByAdmin  User?            @relation("ShopApprovedBy", fields: [approveBy], references: [userId])
 }
 
 model storages {
@@ -161,10 +163,11 @@ model User {
   userStatus        UserStatus
   refreshToken      String?             @unique
   profilePicture    String?
+
   favorite_products favorite_products[]
   favorite_shops    favorite_shops[]
   shops             shops?
-
+  shopsApproved     shops[]             @relation("ShopApprovedBy")
   @@map("users")
 }
 
