@@ -80,17 +80,27 @@ class AuthService {
  
   #signAccessToken(user) {
     return this.jwt.sign(
-      { userId: user.userId, role: user.userRole },
+      { 
+        userId: user.userId, 
+        role: user.userRole,
+        status : user.userStatus 
+      },
       this.jwtSecret,
-      { expiresIn: this.accessTokenTTL }
+      { 
+        expiresIn: this.accessTokenTTL 
+      }
     );
   }
  
   #signRefreshToken(user) {
     return this.jwt.sign(
-      { userId: user.userId },
+      {
+         userId: user.userId 
+      },
       this.jwtSecret,
-      { expiresIn: this.refreshTokenTTL }
+      {
+        expiresIn: this.refreshTokenTTL 
+      }
     );
   }
  
@@ -120,7 +130,20 @@ class AuthService {
     // 6. ส่ง Token กลับไปทั้ง 2 ตัว
     return { user, accessToken, refreshToken };
   }
+
+
+  async getShopStatusByUserId(userId) {
+    const shop = await this.prisma.shops.findUnique({
+      where: { userId },
+      select: { shopId: true, shopStatus: true },
+    });
+
+    return shop;
+  }
+  
 }
+
+
  
 export { AuthService };
 export default new AuthService();
