@@ -99,13 +99,15 @@ class ShopController {
       }
 
       const existingShop = await this.shopService.findShopByUserId(userId);
-      if (existingShop) {
+      if (existingShop && existingShop.shopStatus !== 'REJECTED') {
         return res.status(409).json({ error: 'คุณเคยลงทะเบียนร้านค้าไปแล้ว' });
       }
 
       const imageUrls = await this.#uploadShopImages(req.files, userId);
 
-      const shop = await this.shopService.registerShop(userId, req.body, imageUrls);
+      const shop = existingShop
+      ? await this.shopService.resubmitShop(existingShop.shopId, userId, req.body, imageUrls)
+      : await this.shopService.registerShop(userId, req.body, imageUrls);
       
       res.status(201).json({
         status: 'success',

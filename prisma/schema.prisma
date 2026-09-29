@@ -136,7 +136,7 @@ model shops {
   approveBy        Int?              
   businessRegImage String?
   idCardImage      String?
-  storeImnage      String?
+  storeImage      String?
 
   favorite_shops   favorite_shops[]
   shop_products    shop_products[]

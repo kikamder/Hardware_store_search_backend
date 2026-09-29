@@ -60,7 +60,7 @@ class ShopService {
       profileImageUrl: imageFiles.profileImageUrl ?? null,
       idCardImage: imageFiles.idCardImage,
       businessRegImage: imageFiles.businessRegImage ?? null,
-      storeImnage: imageFiles.storeImnage,
+      storeImage: imageFiles.storeImage,
       shopStatus: 'PENDING',
       submittedAt: new Date(),
     };
@@ -252,7 +252,7 @@ class ShopService {
       storeverification: {
         idCardImage: shop.idCardImage,
         businessRegImage: shop.businessRegImage,
-        storeImnage: shop.storeImnage,
+        storeImage: shop.storeImage,
         approveAt: shop.approveAt,
         approveBy: shop.approvedByAdmin?.displayName ?? null,
       },
@@ -298,6 +298,37 @@ class ShopService {
     });
 
     return shop;
+  }
+
+  async resubmitShop(existingShop, userId, body, imageFiles) {
+    // เอา relation user ออก เพราะตอน update ไม่ต้อง connect ใหม่
+    const { user, ...data } = this.#buildShopData(userId, body, imageFiles);
+
+    return this.prisma.shops.update({
+      where: { userId: userId },
+      data: {
+        ...data,
+
+        // ถ้าไม่ได้อัปโหลดรูปใหม่ ให้คงรูปเดิมไว้ (ไม่ทับด้วย null / undefined)
+        profileImageUrl: imageFiles.profileImageUrl ?? existingShop.profileImageUrl,
+        idCardImage: imageFiles.idCardImage ?? existingShop.idCardImage,
+        businessRegImage: imageFiles.businessRegImage ?? existingShop.businessRegImage,
+        storeImage: imageFiles.storeImage ?? existingShop.storeImage,
+
+        // ฟิลด์สถานะ กำหนดจากฝั่งเซิร์ฟเวอร์เท่านั้น
+        shopStatus: 'PENDING',
+        submittedAt: new Date(),
+
+        // เคลียร์ข้อมูลการตรวจสอบรอบเก่า (เปิดใช้ถ้ามีฟิลด์เหล่านี้ใน schema)
+        // rejectReason: null,
+        // reviewedAt: null,
+        // reviewedBy: null,
+      },
+      select: {
+        shopId: true,
+        shopStatus: true,
+      },
+    });
   }
 
   async getShopProfile(shopId) {
