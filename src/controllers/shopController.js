@@ -106,7 +106,7 @@ class ShopController {
       const imageUrls = await this.#uploadShopImages(req.files, userId);
 
       const shop = await this.shopService.registerShop(userId, req.body, imageUrls);
-
+      console.log('Shop registered :', shop);
       res.status(201).json({
         status: 'success',
         message: 'ลงทะเบียนสำเร็จ กรุณารอยืนยัน',
