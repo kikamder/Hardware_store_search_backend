@@ -288,7 +288,7 @@ class ShopService {
 
   async registerShop(userId, body, imageFiles) {
     const data = this.#buildShopData(userId, body, imageFiles);
-
+    console.log('Data to create shop:', data); // Debug log
     const shop = await this.prisma.shops.create({
       data,
       select: {
