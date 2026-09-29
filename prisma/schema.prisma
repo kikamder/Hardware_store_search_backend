@@ -133,7 +133,7 @@ model shops {
   shopStatus       ShopStatus
   submittedAt      DateTime         @default(now())
   approveAt        DateTime?
-  approveBy        Int              
+  approveBy        Int?              
   businessRegImage String?
   idCardImage      String?
   storeImnage      String?
