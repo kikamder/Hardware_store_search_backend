@@ -38,7 +38,11 @@ class ShopService {
   //ให้เป็น object พร้อมแปลง type ที่จำเป็น (lat/long ต้องเป็น Number)
   #buildShopData(userId, body, imageFiles) {
     return {
-      userId,
+      user: {
+        connect: {
+          userId: userId, // *ถ้าใน schema.prisma ตาราง user ใช้ PK ชื่อ userId ให้เปลี่ยนเป็น { userId: userId }
+        },
+      },
       ownerFirstName: body.ownerFirstName,
       ownerLastName: body.ownerLastName,
       shopName: body.shopName,
