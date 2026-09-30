@@ -261,6 +261,19 @@ class ProductService {
     }, {});
   }
 
+  #toIntOrNull(value, fieldName) {
+    if (value === undefined || value === null || String(value).trim() === '') {
+      return null;
+    }
+    const num = Number(value);
+    if (!Number.isInteger(num)) {
+      const error = new Error(`${fieldName} ต้องเป็นจำนวนเต็ม`);
+      error.statusCode = 400;
+      throw error;
+    }
+    return num;
+  }
+
   // ---------- Public API ----------
 
   async normalizePagination(page, limit) {
@@ -295,13 +308,18 @@ class ProductService {
     const config = this.#getCategoryConfigOrThrow(category);
     this.#validateStoreDetails(storeDetails);
 
-    const isCreatingNewMasterData = !hardware.productModelId;
+    const normalizedHardware = { ...hardware };
+    if ('vramSize' in normalizedHardware) {
+      normalizedHardware.vramSize = this.#toIntOrNull(normalizedHardware.vramSize, 'vramSize');
+    }
+
+    const isCreatingNewMasterData = !normalizedHardware.productModelId;
    
     try {
       const result = await this.prisma.$transaction(async (tx) => {
         const masterId = isCreatingNewMasterData
-          ? await this.#createNewMasterData(tx, category, config, hardware)
-          : await this.#resolveExistingMasterId(tx, category, hardware.productModelId);
+          ? await this.#createNewMasterData(tx, category, config, normalizedHardware)
+          : await this.#resolveExistingMasterId(tx, category, normalizedHardware.productModelId);
 
         const shop_products = await tx.shop_products.create({
           data: {
