@@ -309,7 +309,7 @@ class ProductService {
     this.#validateStoreDetails(storeDetails);
 
     const normalizedHardware = { ...hardware };
-    for (const field of ['vramSize', 'capacityGB']) {
+    for (const field of ['vramSize', 'capacityGB' , 'watt']) {
       if (field in normalizedHardware) {
         normalizedHardware[field] = this.#toIntOrNull(normalizedHardware[field], field);
       }
