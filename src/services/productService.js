@@ -309,8 +309,10 @@ class ProductService {
     this.#validateStoreDetails(storeDetails);
 
     const normalizedHardware = { ...hardware };
-    if ('vramSize' in normalizedHardware) {
-      normalizedHardware.vramSize = this.#toIntOrNull(normalizedHardware.vramSize, 'vramSize');
+    for (const field of ['vramSize', 'capacityGB']) {
+      if (field in normalizedHardware) {
+        normalizedHardware[field] = this.#toIntOrNull(normalizedHardware[field], field);
+      }
     }
 
     const isCreatingNewMasterData = !normalizedHardware.productModelId;
