@@ -279,18 +279,7 @@ class ProductService {
     }, {});
   }
 
-  #toIntOrNull(value, fieldName) {
-    if (value === undefined || value === null || String(value).trim() === '') {
-      return null;
-    }
-    const num = Number(value);
-    if (!Number.isInteger(num)) {
-      const error = new Error(`${fieldName} ต้องเป็นจำนวนเต็ม`);
-      error.statusCode = 400;
-      throw error;
-    }
-    return num;
-  }
+ 
 
   // ---------- Public API ----------
 
@@ -326,14 +315,7 @@ class ProductService {
     const config = this.#getCategoryConfigOrThrow(category);
     this.#validateStoreDetails(storeDetails);
 
-    const normalizedHardware = { ...hardware };
-    for (const field of ['vramSize', 'capacityGB' , 'watt']) {
-      if (field in normalizedHardware) {
-        normalizedHardware[field] = this.#toIntOrNull(normalizedHardware[field], field);
-      }
-    }
-
-    const isCreatingNewMasterData = !normalizedHardware.productModelId;
+    const isCreatingNewMasterData = !hardware.productModelId;
    
     try {
       const result = await this.prisma.$transaction(async (tx) => {
@@ -341,9 +323,9 @@ class ProductService {
         let isNewMaster = false;
 
         if (isCreatingNewMasterData) {
-          ({ masterId, isNew: isNewMaster } = await this.#createNewMasterData(tx, category, config, normalizedHardware));
+          ({ masterId, isNew: isNewMaster } = await this.#createNewMasterData(tx, category, config, hardware));
         } else {
-          masterId = await this.#resolveExistingMasterId(tx, category, normalizedHardware.productModelId);
+          masterId = await this.#resolveExistingMasterId(tx, category, hardware.productModelId);
         }
 
         const shop_products = await tx.shop_products.create({
