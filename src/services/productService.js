@@ -156,12 +156,30 @@ class ProductService {
   
   //สร้าง master data ใหม่ทั้งคู่ (master_hardware + ตารางเฉพาะทาง) แล้วคืน masterId
   async #createNewMasterData(tx, category, config, hardware) {
+    // hardware_key ต้องมีเสมอเมื่อไม่ได้ส่ง productModelId มา ไม่งั้น 400
+    const hardwareKey = hardware.hardware_key;
+    if (typeof hardwareKey !== 'string' || hardwareKey.trim() === '') {
+      const error = new Error('ต้องระบุ hardware_key เมื่อสร้างข้อมูลฮาร์ดแวร์ใหม่');
+      error.statusCode = 400;
+      throw error;
+    }
+
+    // ถ้ามี key นี้อยู่แล้ว ใช้ masterId เดิม ไม่สร้างหรือเขียนทับอะไร
+    const existing = await tx.master_hardware.findUnique({
+      where: { hardwareKey },
+      select: { masterId: true },
+    });
+    if (existing) {
+      return { masterId: existing.masterId, isNew: false };
+    }
+
+    // ไม่เจอ key ถึงจะ validate spec แล้วสร้างใหม่
     this.#validateNewHardwarePayload(category, hardware, config.specFields);
 
     const masterRecord = await this.#createMasterHardware(tx, category, hardware);
     await this.#createCategorySpecRecord(tx, config, masterRecord.masterId, hardware);
 
-    return masterRecord.masterId;
+    return { masterId: masterRecord.masterId, isNew: true };
   }
 
 
@@ -319,9 +337,14 @@ class ProductService {
    
     try {
       const result = await this.prisma.$transaction(async (tx) => {
-        const masterId = isCreatingNewMasterData
-          ? await this.#createNewMasterData(tx, category, config, normalizedHardware)
-          : await this.#resolveExistingMasterId(tx, category, normalizedHardware.productModelId);
+        let masterId;
+        let isNewMaster = false;
+
+        if (isCreatingNewMasterData) {
+          ({ masterId, isNew: isNewMaster } = await this.#createNewMasterData(tx, category, config, normalizedHardware));
+        } else {
+          masterId = await this.#resolveExistingMasterId(tx, category, normalizedHardware.productModelId);
+        }
 
         const shop_products = await tx.shop_products.create({
           data: {
@@ -336,7 +359,7 @@ class ProductService {
           },
         });
 
-        return { shop_products, masterId };
+        return { shop_products, masterId, isNewMaster };
       });
 
       return {
@@ -344,12 +367,12 @@ class ProductService {
         category,
         productModelId: result.masterId,
         customTitle: result.shop_products.customTitle,
-        isNewMasterDataCreated: isCreatingNewMasterData,
+        isNewMasterDataCreated: result.isNewMaster,
       };
     } catch (err) {
-      // ดักจับกรณี hardwareKey ชนกันให้ตอบ 409 แทนที่จะหลุดเป็น 500
+      // ร้านเดียวกันเพิ่มสินค้ารุ่นเดิมซ้ำ (unique shopId + masterId)
       if (err.code === 'P2002') {
-        const error = new Error('hardwareKey นี้มีอยู่ในระบบแล้ว กรุณาตรวจสอบข้อมูลอีกครั้ง');
+        const error = new Error('คุณเคยเพิ่มสินค้านี้ไปแล้ว');
         error.statusCode = 409;
         throw error;
       }
