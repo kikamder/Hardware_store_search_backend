@@ -1,6 +1,8 @@
 import prismaClient from '../configs/prismaClient.js';
 import productServiceInstance from './productService.js';
 import { ShopStatus } from '@prisma/client';
+import fileUploadServiceInstance from './fileuploadService.js';
+
 const SHOP_FIELD_CONFIG = Object.freeze({
   ownerFirstName:   { type: 'string' },
   ownerLastName:    { type: 'string' },
@@ -26,9 +28,14 @@ const MAX_LIMIT = 100;
 const VALID_SHOP_STATUSES = Object.values(ShopStatus);
 
 class ShopService {
-  constructor({ prisma = prismaClient } = {}) {
+  constructor({ 
+    prisma = prismaClient, 
+    productService = productServiceInstance,
+    fileUploadService = fileUploadServiceInstance
+   } = {}) {
     this.prisma = prisma;
-    this.productService = productServiceInstance;
+    this.productService = productService;
+    this.fileUploadService = fileUploadService;
   }
   
   // ---------- Private helpers ----------
@@ -132,18 +139,35 @@ class ShopService {
  
     return result;
   }
-
   #buildUpdatePayload(payload) {
     const dataToUpdate = {};
+    payload = payload ?? {};
 
     for (const [field, config] of Object.entries(SHOP_FIELD_CONFIG)) {
       if (payload[field] === undefined) continue;
 
-      const value = payload[field];
+      let value = payload[field];
 
       if (config.type === 'number') {
-        dataToUpdate[field] = Number(value);
+        // multipart ส่งมาเป็น string; ค่าว่างหรือไม่ใช่ตัวเลขให้ 400
+        const num = typeof value === 'string' && value.trim() === '' ? NaN : Number(value);
+        if (Number.isNaN(num)) {
+          const err = new Error(`${field} ต้องเป็นตัวเลข`);
+          err.statusCode = 400;
+          throw err;
+        }
+        dataToUpdate[field] = num;
       } else if (config.type === 'object') {
+        // multipart ส่ง object มาเป็น JSON string
+        if (typeof value === 'string') {
+          try {
+            value = JSON.parse(value);
+          } catch {
+            const err = new Error(`${field} ต้องเป็น JSON ที่ถูกต้อง`);
+            err.statusCode = 400;
+            throw err;
+          }
+        }
         if (typeof value !== 'object' || value === null || Array.isArray(value)) {
           const err = new Error(`${field} ต้องเป็น object เท่านั้น`);
           err.statusCode = 400;
@@ -155,13 +179,7 @@ class ShopService {
       }
     }
 
-    if (Object.keys(dataToUpdate).length === 0) {
-      const err = new Error('ไม่มีข้อมูลที่ต้องการอัปเดต');
-      err.statusCode = 400;
-      throw err;
-    }
-
-    return dataToUpdate;
+    return dataToUpdate; // ไม่ throw เมื่อว่างแล้ว เพราะส่งแค่ไฟล์รูปอย่างเดียวก็ถือว่ามีข้อมูลอัปเดต
   }
 
   
@@ -453,15 +471,39 @@ class ShopService {
     };
   }
 
-  async updateShopProfile(userId, payload) {
-    const shop = await this.findShopByUserId(userId);
+  async updateShopProfile(userId, payload, file) {
+    const shop = await this.findShopByUserId(userId); // เดา: คืน record เต็ม มี profileImageUrl
     const dataToUpdate = this.#buildUpdatePayload(payload);
 
+    // 1. อัปโหลดรูปใหม่ก่อน (ถ้ามีไฟล์) ทับค่า profileImageUrl ที่อาจส่งมาเป็น string
+    const oldImageUrl = shop.profileImageUrl;
+    if (file) {
+      dataToUpdate.profileImageUrl = await this.fileUploadService.uploadImage(
+        file.buffer, userId, 'profile'
+      );
+    }
+
+    if (Object.keys(dataToUpdate).length === 0) {
+      const err = new Error('ไม่มีข้อมูลที่ต้องการอัปเดต');
+      err.statusCode = 400;
+      throw err;
+    }
+
+    // 2. อัปเดต DB
     const updatedShop = await this.prisma.shops.update({
       where: { shopId: shop.shopId },
       data: dataToUpdate,
     });
-    
+
+    // 3. ลบรูปเก่า ถ้าพังไม่ขวางการอัปเดต
+    if (file && oldImageUrl && oldImageUrl !== updatedShop.profileImageUrl) {
+      try {
+        await this.fileUploadService.deleteImageByUrl(oldImageUrl);
+      } catch (err) {
+        console.error('Delete old profile image failed:', err);
+      }
+    }
+
     return updatedShop;
   }
   

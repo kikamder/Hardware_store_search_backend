@@ -15,7 +15,7 @@ router.put('/stores/:shopId/status',verifyToken,roleCheck('ADMIN'), ShopControll
 router.use(verifyToken, roleCheck('SHOP'), requireOpenShop); 
 router.post('/products',ShopController.addProduct);
 router.get('/dashboard', ShopController.getDashboard);
-router.put('/profile', ShopController.updateProfile);
+router.put('/profile', upload.single('profileImageUrl'), ShopController.updateProfile);
 router.get('/products', ShopController.getShopProducts);
 router.put('/products/:shopProductId', ShopController.updateShopProduct);
 router.get('/profile/me', ShopController.getMyShopProfile);

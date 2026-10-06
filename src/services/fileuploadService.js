@@ -24,6 +24,18 @@ class UploadService {
       stream.end(fileBuffer);
     });
   }
+
+  async deleteImageByUrl(url) {
+    if (typeof url !== 'string') return;
+
+    // เช่น .../upload/v1699/HardwareProject/Shop_identify_image/profile_12_1699.jpg
+    const match = url.match(/\/upload\/(?:v\d+\/)?(.+)\.[^./]+$/);
+    const publicId = match?.[1];
+    if (!publicId || !publicId.startsWith('HardwareProject/')) return;
+
+    await cloudinary.uploader.destroy(publicId);
+  }
+
 }
 
 export default new UploadService();

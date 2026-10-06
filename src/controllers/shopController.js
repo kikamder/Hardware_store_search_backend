@@ -257,8 +257,8 @@ class ShopController {
    async updateProfile(req, res) {
     try {
       const userId = req.user.userId;
-
-      const updatedShop = await this.shopService.updateShopProfile(userId, req.body);
+      
+      const updatedShop = await this.shopService.updateShopProfile(userId, req.body, req.file);
       return res.status(200).json({
         status: 'success',
         message: 'อัปเดตข้อมูลร้านค้าเรียบร้อยแล้ว',
@@ -269,11 +269,12 @@ class ShopController {
         },
       });
     } catch (error) {
-      const statusCode = error.statusCode || 500;
-      return res.status(statusCode).json({
-        status: 'error',
-        message: error.message || 'เกิดข้อผิดพลาดในระบบ',
-      });
+        if (!error.statusCode) console.error('Update Profile Error:', error);
+        const statusCode = error.statusCode || 500;
+        return res.status(statusCode).json({
+          status: 'error',
+          message: error.message || 'เกิดข้อผิดพลาดในระบบ',
+        });
     }
   }
 
