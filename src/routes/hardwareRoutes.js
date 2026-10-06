@@ -6,9 +6,13 @@ import { verifyToken } from '../middlewares/authMiddleware.js';
 
 const router = Router();
 
+router.get('/filters', hardwareController.getFilterOptions);
+
 router.get('/:category', hardwareController.getHardwareByCategory);
 router.get('/:category/autocomplete', hardwareController.autocomplete);
 router.post('/match-stores', matchStoreController.matchStores);
+
+
 
 router.get('/:masterId/detail',verifyToken,roleCheck('SHOP'), hardwareController.getHardwareDetail);
 

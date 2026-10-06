@@ -27,6 +27,16 @@ const HARDWARE_CATEGORY_CONFIG = Object.freeze({
   },
 });
 
+
+const FILTER_FIELDS = {
+  CPU:       {  spec: ['socket', 'family'] },
+  MAINBOARD: { master: ['brand'], spec: ['formFactor', 'socket'] },
+  VGA:       { master: ['brand'], spec: ['series'] },
+  RAM:       { master: ['brand'], spec: ['ramType', 'busSpeed'] },
+  STORAGE:   { master: ['brand'], shop: ['warranty'] },
+  PSU:       { master: ['brand'], spec: ['watt'] },
+};
+
 const ALLOWED_UPDATE_FIELDS = ['customTitle', 'price', 'warranty', 'description', 'imageUrl', 'productStatus'];
 const DEFAULT_PAGE = 1;
 const DEFAULT_LIMIT = 20;
@@ -443,48 +453,122 @@ class ProductService {
   }
 
   async updateShopProduct(userId, shopProductId, body) {
-  const shop = await this.#findShopByUserId(userId);
-  if (!shop) {
-    const error = new Error('Shop not found for this user');
-    error.statusCode = 403;
-    throw error;
+    const shop = await this.#findShopByUserId(userId);
+    if (!shop) {
+      const error = new Error('Shop not found for this user');
+      error.statusCode = 403;
+      throw error;
+    }
+
+    const updateData = this.#filterAllowedFields(body);
+
+    if (Object.keys(updateData).length === 0) {
+      const error = new Error('ไม่มีข้อมูลสำหรับอัปเดต');
+      error.statusCode = 400;
+      throw error;
+    }
+
+    const product = await this.prisma.shop_products.findUnique({
+      where: { shopProductId: Number(shopProductId) },
+    });
+
+    if (!product) {
+      const error = new Error('ไม่พบรายการสินค้านี้ในระบบ');
+      error.statusCode = 404;
+      throw error;
+    }
+
+    if (product.shopId !== shop.shopId) {
+      const error = new Error('คุณไม่มีสิทธิ์แก้ไขสินค้ารายการนี้');
+      error.statusCode = 403;
+      throw error;
+    }
+
+    const updated = await this.prisma.shop_products.update({
+      where: { shopProductId: product.shopProductId },
+      data: { ...updateData, updatedAt: new Date() },
+    });
+
+    return {
+      shopProductId: updated.shopProductId,
+      updatedAt: updated.updatedAt,
+      ...this.#pickChangedFields(updated, updateData),
+    };
   }
 
-  const updateData = this.#filterAllowedFields(body);
+  async getProductFilterOptions(category) {
+    // ใช้ตัวเดิมเพื่อเอาชื่อตารางสเปกจาก config (config.table) และให้ category ผิดแล้วโยน error เหมือนที่อื่น
+    const config = this.#getCategoryConfigOrThrow(category);
+    const fields = FILTER_FIELDS[category];
+    if (!fields) {
+      const error = new Error(`ยังไม่รองรับ filter ของ category "${category}"`);
+      error.statusCode = 400;
+      throw error;
+    }
 
-  if (Object.keys(updateData).length === 0) {
-    const error = new Error('ไม่มีข้อมูลสำหรับอัปเดต');
-    error.statusCode = 400;
-    throw error;
+    // เงื่อนไข "มีร้านขายจริง" ใช้ซ้ำกับ master_hardware และตารางสเปก
+    // เดา: ชื่อฟิลด์ productStatus ใน shop_products
+    const hasActiveListing = {
+      shop_products: { some: { productStatus: 'ACTIVE' } },
+    };
+
+    const tasks = [];
+
+    // brand (อยู่ใน master_hardware)
+    for (const f of fields.master ?? []) {
+      tasks.push(
+        this.prisma.master_hardware
+          .findMany({
+            where: { category, ...hasActiveListing },
+            select: { [f]: true },
+            distinct: [f],
+            orderBy: { [f]: 'asc' },
+          })
+          .then((rows) => [f, rows.map((r) => r[f])])
+      );
+    }
+
+    // ฟิลด์ในตารางสเปก (กรองผ่าน relation master_hardware ย้อนกลับ)
+    for (const f of fields.spec ?? []) {
+      tasks.push(
+        this.prisma[config.table]
+          .findMany({
+            where: { master_hardware: hasActiveListing },
+            select: { [f]: true },
+            distinct: [f],
+            orderBy: { [f]: 'asc' },
+          })
+          .then((rows) => [f, rows.map((r) => r[f])])
+      );
+    }
+
+    // ฟิลด์ใน shop_products (เช่น warranty ของ storage)
+    for (const f of fields.shop ?? []) {
+      tasks.push(
+        this.prisma.shop_products
+          .findMany({
+            where: {
+              productStatus: 'ACTIVE',
+              master_hardware: { category }, // เดา: ชื่อ relation ใน shop_products คือ master_hardware
+            },
+            select: { [f]: true },
+            distinct: [f],
+            orderBy: { [f]: 'asc' },
+          })
+          .then((rows) => [f, rows.map((r) => r[f])])
+      );
+    }
+
+    const entries = await Promise.all(tasks);
+
+    // ตัดค่าว่างทิ้ง แล้วแปลงเป็น object
+    const options = {};
+    for (const [name, values] of entries) {
+      options[name] = values.filter((v) => v !== null && v !== undefined && v !== '');
+    }
+    return options;
   }
-
-  const product = await this.prisma.shop_products.findUnique({
-    where: { shopProductId: Number(shopProductId) },
-  });
-
-  if (!product) {
-    const error = new Error('ไม่พบรายการสินค้านี้ในระบบ');
-    error.statusCode = 404;
-    throw error;
-  }
-
-  if (product.shopId !== shop.shopId) {
-    const error = new Error('คุณไม่มีสิทธิ์แก้ไขสินค้ารายการนี้');
-    error.statusCode = 403;
-    throw error;
-  }
-
-  const updated = await this.prisma.shop_products.update({
-    where: { shopProductId: product.shopProductId },
-    data: { ...updateData, updatedAt: new Date() },
-  });
-
-  return {
-    shopProductId: updated.shopProductId,
-    updatedAt: updated.updatedAt,
-    ...this.#pickChangedFields(updated, updateData),
-  };
-}
+  
 }
 
 export { ProductService };

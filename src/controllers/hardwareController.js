@@ -12,9 +12,11 @@ class HardwareController {
         this.productService = productService;
         this.hardwareService = hardwareService;
         
+        
         this.getHardwareByCategory = this.getHardwareByCategory.bind(this);
         this.autocomplete = this.autocomplete.bind(this);
         this.getHardwareDetail = this.getHardwareDetail.bind(this);
+        this.getFilterOptions = this.getFilterOptions.bind(this);
     }
 
   // ---------- Route handlers ----------
@@ -88,6 +90,23 @@ class HardwareController {
         status: 'error',
         message: error.message,
       });
+    }
+  }
+
+  async getFilterOptions(req, res) {
+    try {
+      const category = req.query.category?.toString().toUpperCase();
+      if (!category) {
+        return res.status(400).json({ error: 'ต้องระบุ category' });
+      }
+      const data = await this.productService.getProductFilterOptions(category);
+      res.status(200).json({ status: 'success', data });
+    } catch (error) {
+      if (error.statusCode) {
+        return res.status(error.statusCode).json({ error: error.message });
+      }
+      console.error('Get Filter Options Error:', error);
+      res.status(500).json({ error: 'Internal server error' });
     }
   }
 
