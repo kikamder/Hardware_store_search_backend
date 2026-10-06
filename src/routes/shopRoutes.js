@@ -3,6 +3,7 @@ import ShopController from '../controllers/shopController.js';
 import roleCheck from '../middlewares/roleMiddleware.js';
 import { verifyToken , requireOpenShop } from '../middlewares/authMiddleware.js';
 const router = express.Router();
+const upload = multer({ storage: multer.memoryStorage() });
 
 
 router.get('/:shopId/profile', ShopController.getProfile);
