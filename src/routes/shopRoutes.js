@@ -2,6 +2,8 @@ import express from 'express';
 import ShopController from '../controllers/shopController.js';
 import roleCheck from '../middlewares/roleMiddleware.js';
 import { verifyToken , requireOpenShop } from '../middlewares/authMiddleware.js';
+import multer from 'multer';
+
 const router = express.Router();
 const upload = multer({ storage: multer.memoryStorage() });
 
