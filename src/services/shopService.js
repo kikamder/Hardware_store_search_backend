@@ -55,7 +55,7 @@ class ShopService {
     return {
       user: {
         connect: {
-          userId: userId, // 
+          userId: userId,
         },
       },
       ownerFirstName: body.ownerFirstName,
