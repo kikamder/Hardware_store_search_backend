@@ -94,6 +94,9 @@ class MatchStoreService {
       where: {
         masterId: { in: masterIds },
         productStatus: PRODUCT_STATUS.ACTIVE,
+        shops: {
+          shopStatus: 'OPEN',
+        },
       },
       include: {
         shops: true, // ปรับชื่อ relation ให้ตรงกับ schema.prisma จริง (shop_products -> shops)

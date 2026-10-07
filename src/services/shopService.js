@@ -44,10 +44,18 @@ class ShopService {
   //รวม field จาก req.body (string ล้วน เพราะมาจาก multipart/form-data)
   //ให้เป็น object พร้อมแปลง type ที่จำเป็น (lat/long ต้องเป็น Number)
   #buildShopData(userId, body, imageFiles) {
+
+    let parsedContactChannels = null;
+    if (body.contactChannels) {
+      parsedContactChannels = typeof body.contactChannels === 'string'
+        ? JSON.parse(body.contactChannels)
+        : body.contactChannels;
+    }
+  
     return {
       user: {
         connect: {
-          userId: userId, // *ถ้าใน schema.prisma ตาราง user ใช้ PK ชื่อ userId ให้เปลี่ยนเป็น { userId: userId }
+          userId: userId, // 
         },
       },
       ownerFirstName: body.ownerFirstName,
@@ -59,7 +67,7 @@ class ShopService {
       district: body.district,
       province: body.province,
       zipCode: body.zipCode,
-      contactChannels: body.contactChannels,
+      contactChannels: parsedContactChannels,
       ownerPhone: body.ownerPhone,
       latitude: parseFloat(body.latitude),
       longitude: parseFloat(body.longitude),
