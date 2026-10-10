@@ -1,4 +1,7 @@
 import favoriteServiceInstance from '../services/favoriteService.js';
+import { Category } from '@prisma/client';
+
+const HARDWARE_CATEGORIES = Object.values(Category);
 
 class FavoriteController {
   constructor({ favoriteService = favoriteServiceInstance } = {}) {
