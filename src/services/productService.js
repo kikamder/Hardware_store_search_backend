@@ -7,7 +7,7 @@ const HARDWARE_CATEGORY_CONFIG = Object.freeze({
   },
   RAM: {
     table: 'rams',
-    specFields: ['ramType', 'capacityGB', 'busSpeed'],
+    specFields: ['ramType', 'capacityGB', 'busSpeed','model'],
   },
   VGA: {
     table: 'vgas',

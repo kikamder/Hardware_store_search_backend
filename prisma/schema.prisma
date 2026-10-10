@@ -85,6 +85,7 @@ model rams {
   ramType         String          @db.VarChar(50)
   capacityGB      Int
   busSpeed        Int
+  model           String          @db.VarChar(50)
   master_hardware master_hardware @relation(fields: [masterId], references: [masterId], onDelete: Cascade)
 
   @@index([capacityGB, busSpeed])
