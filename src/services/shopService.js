@@ -91,6 +91,7 @@ class ShopService {
       line: contactChannels?.line ?? null,
       website: contactChannels?.website ?? null,
       facebook: contactChannels?.facebook ?? null,
+      facebookLink : contactChannels?.facebookLink ?? null,
     };
   }
  

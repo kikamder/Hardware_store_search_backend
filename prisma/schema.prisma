@@ -129,8 +129,8 @@ model shops {
   contactChannels  Json?
   ownerPhone       String?          @db.VarChar(13)
   operatingHours   String?          @db.VarChar(100)
-  latitude         Decimal?
-  longitude        Decimal?
+  latitude         Decimal?         @db.Decimal(10, 7)
+  longitude        Decimal?         @db.Decimal(10, 7)
   shopStatus       ShopStatus
   submittedAt      DateTime         @default(now())
   approveAt        DateTime?
@@ -164,6 +164,8 @@ model User {
   userStatus        UserStatus
   refreshToken      String?             @unique
   profilePicture    String?
+  latitude          Decimal?            @db.Decimal(10, 7)
+  longitude         Decimal?            @db.Decimal(10, 7)
 
   favorite_products favorite_products[]
   favorite_shops    favorite_shops[]

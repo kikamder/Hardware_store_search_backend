@@ -30,6 +30,8 @@ router.delete('/favorites/products/:shopProductId', favoriteController.removeFav
 router.post('/favorites/stores', favoriteController.addFavoriteShop);
 router.get('/favorites/stores', favoriteController.getFavoriteShops);
 router.delete('/favorites/stores/:shopId', favoriteController.removeFavoriteShop);
+router.get('/location', verifyToken, userController.getLocation);
+router.put('/location', verifyToken, userController.updateLocation);
 
 
 

@@ -200,6 +200,8 @@ class FavoriteController {
     }
   }
 
+  
+
 }
 
 export { FavoriteController };

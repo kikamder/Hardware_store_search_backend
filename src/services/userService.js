@@ -128,6 +128,71 @@ class UserService {
 
         return updated;
     }
+
+    async updateUserLocation(userId, payload) {
+      const { latitude, longitude } = this.#parseLocation(payload);
+
+      try {
+        const user = await this.prisma.user.update({
+          where: { userId },
+          data: { latitude, longitude },
+          select: { userId: true, latitude: true, longitude: true },
+        });
+
+        // Prisma คืน Decimal จึงแปลงเป็น number ก่อนส่งกลับ
+        return {
+          userId: user.userId,
+          latitude: Number(user.latitude),
+          longitude: Number(user.longitude),
+        };
+      } catch (err) {
+        // P2025 = ไม่พบแถวที่จะอัปเดต (เช่น ผู้ใช้ถูกลบหลังออก token)
+        if (err.code === 'P2025') {
+          const error = new Error('ไม่พบข้อมูลผู้ใช้');
+          error.statusCode = 404;
+          throw error;
+        }
+        throw err;
+      }
+    }
+
+    #parseLocation(payload) {
+      const { latitude, longitude } = payload ?? {};
+
+      // Number.isFinite ไม่แปลงชนิดให้ ดังนั้น "13.7", null, undefined, NaN จะไม่ผ่านทั้งหมด
+      if (!Number.isFinite(latitude) || !Number.isFinite(longitude)) {
+        const error = new Error('ต้องระบุ latitude และ longitude เป็นตัวเลขให้ครบทั้งคู่');
+        error.statusCode = 400;
+        throw error;
+      }
+      if (latitude < -90 || latitude > 90 || longitude < -180 || longitude > 180) {
+        const error = new Error('latitude ต้องอยู่ระหว่าง -90 ถึง 90 และ longitude ระหว่าง -180 ถึง 180');
+        error.statusCode = 400;
+        throw error;
+      }
+
+      return { latitude, longitude };
+    }
+
+    async getUserLocation(userId) {
+      const user = await this.prisma.user.findUnique({
+        where: { userId },
+        select: { 
+          latitude: true, 
+          longitude: true },
+      });
+
+      if (!user) {
+        const error = new Error('ไม่พบข้อมูลผู้ใช้');
+        error.statusCode = 404;
+        throw error;
+      }
+      
+      return {
+        latitude: user.latitude === null ? null : Number(user.latitude),
+        longitude: user.longitude === null ? null : Number(user.longitude),
+      };
+    }
 }
 export  {UserService};
 export default new UserService();
