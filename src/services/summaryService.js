@@ -32,6 +32,7 @@ class SummaryService {
         shop: {
             shopId: product.shops?.shopId,
             shopName: product.shops?.shopName,
+            shopPhone : product.shops?.ownerPhone,
             addressText: product.shops?.addressText, 
             subDistrict: product.shops?.subDistrict,
             district: product.shops?.district,
